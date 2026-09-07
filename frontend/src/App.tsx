@@ -1,0 +1,508 @@
+import { useState } from "react";
+import {
+  ArrowDown,
+  ArrowRight,
+  Check,
+  ChevronRight,
+  FileText,
+  Folder,
+  FolderOpen,
+  Layers3,
+  LoaderCircle,
+  LockKeyhole,
+  Play,
+  RotateCcw,
+  ShieldCheck,
+  TriangleAlert,
+} from "lucide-react";
+
+type FileItem = {
+  id: string;
+  current_path: string;
+  size: number;
+  category: string;
+  proposed_name: string;
+  proposed_folder: string;
+  reason: string;
+  status: string;
+  included: boolean;
+  issues: string[];
+};
+type Plan = {
+  root: string;
+  provider: string;
+  items: FileItem[];
+  warnings: string[];
+};
+
+async function request<T>(endpoint: string, body: unknown): Promise<T> {
+  const response = await fetch(`/api/${endpoint}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-FileNest-Client": "local-preview",
+    },
+    body: JSON.stringify(body),
+  });
+  const data = await response.json();
+  if (!response.ok)
+    throw new Error(
+      typeof data.detail === "string"
+        ? data.detail
+        : "Pedido inválido. Verifique os dados e tente novamente.",
+    );
+  return data;
+}
+
+export default function App() {
+  const [path, setPath] = useState("");
+  const [plan, setPlan] = useState<Plan | null>(null);
+  const [original, setOriginal] = useState<Plan | null>(null);
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+  const [dirty, setDirty] = useState(false);
+  const [validated, setValidated] = useState(false);
+  const [filter, setFilter] = useState("all");
+  const [isDemo, setIsDemo] = useState(false);
+  const selected =
+    plan?.items.filter((i) => i.included && i.status === "ready").length ?? 0;
+  const attention =
+    plan?.items.filter(
+      (i) => i.status !== "ready" || (i.included && i.issues.length),
+    ).length ?? 0;
+
+  async function analyze(demo: boolean) {
+    setBusy("analyze");
+    setError("");
+    setValidated(false);
+    try {
+      const result = await request<Plan>("analyze", { path, demo });
+      setPlan(result);
+      setOriginal(structuredClone(result));
+      setDirty(false);
+      setFilter("all");
+      setIsDemo(demo);
+    } catch (e) {
+      setError(
+        e instanceof TypeError
+          ? "Não foi possível contactar o servidor local. Confirme que o backend está a executar na porta 8000."
+          : (e as Error).message,
+      );
+    } finally {
+      setBusy("");
+    }
+  }
+
+  function edit(id: string, changes: Partial<FileItem>) {
+    setPlan(
+      (p) =>
+        p && {
+          ...p,
+          items: p.items.map((i) => (i.id === id ? { ...i, ...changes } : i)),
+        },
+    );
+    setDirty(true);
+    setValidated(false);
+  }
+
+  async function validate() {
+    setBusy("validate");
+    setError("");
+    try {
+      setPlan(await request<Plan>("validate", plan));
+      setDirty(false);
+      setValidated(true);
+    } catch (e) {
+      setError(
+        e instanceof TypeError
+          ? "Servidor local indisponível. As suas edições continuam nesta página."
+          : (e as Error).message,
+      );
+    } finally {
+      setBusy("");
+    }
+  }
+
+  return (
+    <div className="app-shell">
+      <aside className="sidebar">
+        <a className="brand" href="#">
+          <span className="brand-mark">
+            <Layers3 size={23} />
+          </span>
+          FileNest<span className="version">BETA</span>
+        </a>
+        <div className="workspace-label">ESPAÇO LOCAL</div>
+        <div className="nav-item">
+          <FolderOpen size={18} /> Organizador <span>01</span>
+        </div>
+        <div className="sidebar-note">
+          <LockKeyhole size={19} />
+          <strong>
+            Os seus ficheiros,
+            <br />
+            no seu computador.
+          </strong>
+          <p>
+            A análise corre localmente. Nenhum conteúdo é enviado para serviços
+            externos.
+          </p>
+          <span className="local-dot">Sem ligação a IA externa</span>
+        </div>
+        <div className="sidebar-footer">
+          Feito para pôr tudo no lugar.
+          <br />
+          <span>FileNest · versão 0.1</span>
+        </div>
+      </aside>
+      <main>
+        <header className="topbar">
+          <span>
+            Espaço local <ChevronRight size={14} />
+            <strong>Organizador</strong>
+          </span>
+          <span className="readonly">
+            <ShieldCheck size={15} /> Apenas pré-visualização
+          </span>
+        </header>
+        <div className="content">
+          <section className="page-heading">
+            <div>
+              <div className="eyebrow">MENOS CONFUSÃO. MAIS CLAREZA.</div>
+              <h1>Um lugar para cada ficheiro.</h1>
+              <p>Descubra o que tem. Veja onde faz sentido guardar.</p>
+            </div>
+            <span className="mode-pill">
+              <span /> Regras locais · sem IA
+            </span>
+          </section>
+          <ol className="steps">
+            <li className="active">
+              <span>{plan ? <Check size={14} /> : "1"}</span> Escolher pasta
+            </li>
+            <li className={plan ? "active" : ""}>
+              <span>2</span> Rever sugestões
+            </li>
+            <li>
+              <span>3</span> Organizar <small>Em breve</small>
+            </li>
+          </ol>
+          <section className="source-panel">
+            <div className="section-title">
+              <div className="icon-box">
+                <FolderOpen size={21} />
+              </div>
+              <div>
+                <h2>Comece por uma pasta</h2>
+                <p>
+                  PDFs com texto e ficheiros TXT · até 100 documentos · 10 MB
+                  por ficheiro
+                </p>
+              </div>
+            </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void analyze(false);
+              }}
+            >
+              <label htmlFor="folder-path">Caminho da pasta local</label>
+              <div className="path-row">
+                <div className="path-input">
+                  <Folder size={18} />
+                  <input
+                    id="folder-path"
+                    value={path}
+                    onChange={(e) => setPath(e.target.value)}
+                    placeholder="C:\Users\OSeuNome\Documents\Por organizar"
+                    disabled={!!busy}
+                    required
+                  />
+                </div>
+                <button className="primary" disabled={!!busy || !path.trim()}>
+                  {busy === "analyze" ? (
+                    <LoaderCircle className="spin" size={17} />
+                  ) : (
+                    <ArrowRight size={17} />
+                  )}{" "}
+                  Analisar pasta
+                </button>
+              </div>
+            </form>
+            <div className="source-bottom">
+              <span>
+                <LockKeyhole size={13} /> Os originais permanecem intactos.
+              </span>
+              <button
+                className="text-button"
+                onClick={() => void analyze(true)}
+                disabled={!!busy}
+              >
+                <Play size={14} /> Experimentar demonstração{" "}
+                <ArrowRight size={14} />
+              </button>
+            </div>
+          </section>
+          {error && (
+            <div className="error-banner" role="alert">
+              <TriangleAlert size={18} />
+              {error}
+            </div>
+          )}
+          {busy === "analyze" && (
+            <div className="loading" role="status">
+              <LoaderCircle className="spin" /> A extrair texto e a preparar
+              sugestões locais…
+            </div>
+          )}
+          {!plan && !busy && (
+            <section className="welcome">
+              <div className="file-illustration">
+                <span>
+                  <FileText />
+                </span>
+                <span>
+                  <FolderOpen size={42} />
+                </span>
+                <span>
+                  <FileText />
+                </span>
+              </div>
+              <h2>Da pasta desorganizada ao plano claro.</h2>
+              <p>
+                Escolha uma pasta ou explore documentos fictícios.
+                <br />
+                Reveja nomes e destinos antes de qualquer alteração.
+              </p>
+              <button className="secondary" onClick={() => void analyze(true)}>
+                <Play size={15} /> Explorar exemplo
+              </button>
+              <div className="preview-example">
+                <span>scan_001.pdf</span>
+                <ArrowRight size={16} />
+                <strong>Financas/2026-09-01_fatura.pdf</strong>
+              </div>
+            </section>
+          )}
+          {plan && (
+            <section className="results" aria-busy={!!busy}>
+              <div className="results-heading">
+                <div>
+                  <h2>
+                    O seu plano de organização{" "}
+                    <span className="count">{plan.items.length}</span>
+                  </h2>
+                  <p className="root-path">
+                    {isDemo
+                      ? "Documentos fictícios · examples/demo"
+                      : plan.root}
+                  </p>
+                </div>
+                <button
+                  className="text-button"
+                  disabled={!!busy}
+                  onClick={() => {
+                    setPlan(structuredClone(original));
+                    setDirty(false);
+                    setValidated(false);
+                  }}
+                >
+                  <RotateCcw size={14} /> Repor sugestões
+                </button>
+              </div>
+              <div className="demo-notice">
+                <span className="rule-tag">DEMONSTRAÇÃO</span> Sugestões
+                determinísticas por palavras-chave. Não são resultados de
+                inteligência artificial.
+              </div>
+              {plan.warnings.map((warning, i) => (
+                <p className="warning" key={i}>
+                  {warning}
+                </p>
+              ))}
+              <div className="result-toolbar">
+                <div className="filters">
+                  <button
+                    className={filter === "all" ? "selected" : ""}
+                    onClick={() => setFilter("all")}
+                  >
+                    Todos <span>{plan.items.length}</span>
+                  </button>
+                  <button
+                    className={filter === "attention" ? "selected" : ""}
+                    onClick={() => setFilter("attention")}
+                  >
+                    A rever <span>{attention}</span>
+                  </button>
+                </div>
+                <span>{selected} incluídos no plano</span>
+              </div>
+              {!plan.items.length ? (
+                <div className="empty">
+                  <FolderOpen size={32} />
+                  <h3>Nenhum documento compatível</h3>
+                  <p>
+                    Esta pasta não contém PDFs ou TXT no primeiro nível.
+                    <br />
+                    Escolha outra pasta ou experimente a demonstração.
+                  </p>
+                </div>
+              ) : (
+                <div className="file-list">
+                  {plan.items
+                    .filter(
+                      (i) =>
+                        filter === "all" ||
+                        i.status !== "ready" ||
+                        (i.included && i.issues.length),
+                    )
+                    .map((item) => (
+                      <article
+                        className={`file-card ${!item.included ? "excluded" : ""}`}
+                        key={item.id}
+                      >
+                        <div className="file-top">
+                          <label className="file-select">
+                            <input
+                              type="checkbox"
+                              aria-label={`Incluir ${item.current_path}`}
+                              checked={item.included}
+                              disabled={!!busy || item.status !== "ready"}
+                              onChange={(e) =>
+                                edit(item.id, { included: e.target.checked })
+                              }
+                            />
+                            <span
+                              className={`file-icon ${item.current_path.toLowerCase().endsWith(".pdf") ? "pdf" : ""}`}
+                            >
+                              <FileText size={18} />
+                            </span>
+                            <strong>{item.current_path}</strong>
+                          </label>
+                          <span className="category">{item.category}</span>
+                        </div>
+                        {item.status === "ready" ? (
+                          <>
+                            <div className="comparison">
+                              <div className="current">
+                                <span className="field-label">
+                                  CAMINHO ATUAL
+                                </span>
+                                <p>{item.current_path}</p>
+                                <small>
+                                  {(item.size / 1024).toFixed(1)} KB
+                                </small>
+                              </div>
+                              <ArrowRight className="compare-arrow" size={18} />
+                              <div className="destination">
+                                <span className="field-label">
+                                  DESTINO PROPOSTO
+                                </span>
+                                <div className="destination-fields">
+                                  <label>
+                                    <span>Subpasta</span>
+                                    <input
+                                      aria-label={`Subpasta de ${item.current_path}`}
+                                      value={item.proposed_folder}
+                                      maxLength={500}
+                                      disabled={!!busy || !item.included}
+                                      onChange={(e) =>
+                                        edit(item.id, {
+                                          proposed_folder: e.target.value,
+                                        })
+                                      }
+                                    />
+                                  </label>
+                                  <span className="slash">/</span>
+                                  <label>
+                                    <span>Nome do ficheiro</span>
+                                    <input
+                                      aria-label={`Nome proposto de ${item.current_path}`}
+                                      value={item.proposed_name}
+                                      maxLength={120}
+                                      disabled={!!busy || !item.included}
+                                      onChange={(e) =>
+                                        edit(item.id, {
+                                          proposed_name: e.target.value,
+                                        })
+                                      }
+                                    />
+                                  </label>
+                                </div>
+                              </div>
+                            </div>
+                            <p className="reason">{item.reason}</p>
+                            {item.included &&
+                              item.issues.map((issue) => (
+                                <p className="warning" key={issue}>
+                                  <TriangleAlert size={14} />
+                                  {issue}
+                                  {dirty && <small> · revalidar</small>}
+                                </p>
+                              ))}
+                          </>
+                        ) : (
+                          <p className="warning">
+                            <TriangleAlert size={16} />
+                            {item.reason}
+                          </p>
+                        )}
+                      </article>
+                    ))}
+                  {filter === "attention" && attention === 0 && (
+                    <div className="empty">
+                      <Check />
+                      <h3>Nada a rever nesta lista</h3>
+                      <p>
+                        {dirty
+                          ? "Valide as suas edições para atualizar os avisos."
+                          : "Não foram detetados problemas no plano."}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+              {!!plan.items.length && (
+                <div className="plan-footer">
+                  <div>
+                    <strong>
+                      {dirty
+                        ? "Existem edições por validar"
+                        : validated
+                          ? "Validação concluída"
+                          : "Tudo começa com uma boa revisão."}
+                    </strong>
+                    <p role="status">
+                      {validated
+                        ? `${attention} ficheiro(s) a rever. Nenhum original foi alterado.`
+                        : "Valide nomes e colisões. Esta versão não aplica alterações."}
+                    </p>
+                  </div>
+                  <button
+                    className="primary"
+                    disabled={!!busy || selected === 0}
+                    onClick={() => void validate()}
+                  >
+                    {busy === "validate" ? (
+                      <LoaderCircle className="spin" size={16} />
+                    ) : (
+                      <ShieldCheck size={16} />
+                    )}{" "}
+                    Validar plano
+                  </button>
+                </div>
+              )}
+            </section>
+          )}
+          <footer className="page-footer">
+            <ShieldCheck size={14} /> Privado por natureza. Seguro por decisão.
+            <span>
+              Extração local <ArrowDown size={12} /> Regras{" "}
+              <ArrowDown size={12} /> Revisão
+            </span>
+          </footer>
+        </div>
+      </main>
+    </div>
+  );
+}

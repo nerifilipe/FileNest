@@ -203,6 +203,20 @@ cython_debug/
 # Temporary file for partial code execution
 tempCodeRunnerFile.py
 
+# FileNest local development and private inputs
+node_modules/
+*.tsbuildinfo
+.env.*
+!.env.example
+local-documents/
+private/
+tmp/
+artifacts/
+frontend/test-results/
+frontend/playwright-report/
+.idea/
+.vscode/
+
 # Ruff stuff:
 .ruff_cache/
 
