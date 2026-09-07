@@ -1,12 +1,19 @@
 import { test, expect } from "@playwright/test";
 
+// Preview tests isolate the history panel; operations.spec exercises real persistence.
+test.beforeEach(async ({ page }) => {
+  await page.route("**/api/operations/history", (route) =>
+    route.fulfill({ json: [] }),
+  );
+});
+
 test("demo, edit, validate, exclude and restore without external requests", async ({
   page,
 }) => {
   const external = [];
   const errors = [];
   page.on("request", (request) => {
-    if (!request.url().startsWith("http://127.0.0.1:5173"))
+    if (!request.url().startsWith("http://127.0.0.1:5174"))
       external.push(request.url());
   });
   page.on("pageerror", (error) => errors.push(error.message));

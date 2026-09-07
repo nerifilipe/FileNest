@@ -1,4 +1,6 @@
 import { useState } from "react";
+import OperationsPanel from "./OperationsPanel";
+import { request } from "./api";
 import {
   ArrowDown,
   ArrowRight,
@@ -28,31 +30,12 @@ type FileItem = {
   included: boolean;
   issues: string[];
 };
-type Plan = {
+export type Plan = {
   root: string;
   provider: string;
   items: FileItem[];
   warnings: string[];
 };
-
-async function request<T>(endpoint: string, body: unknown): Promise<T> {
-  const response = await fetch(`/api/${endpoint}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-FileNest-Client": "local-preview",
-    },
-    body: JSON.stringify(body),
-  });
-  const data = await response.json();
-  if (!response.ok)
-    throw new Error(
-      typeof data.detail === "string"
-        ? data.detail
-        : "Pedido inválido. Verifique os dados e tente novamente.",
-    );
-  return data;
-}
 
 export default function App() {
   const [path, setPath] = useState("");
@@ -123,6 +106,26 @@ export default function App() {
     }
   }
 
+  async function copyDemo() {
+    setBusy("analyze");
+    setError("");
+    try {
+      const copy = await request<{ path: string }>("demo-copy", {});
+      const result = await request<Plan>("analyze", { path: copy.path });
+      setPath(copy.path);
+      setPlan(result);
+      setOriginal(structuredClone(result));
+      setIsDemo(false);
+      setDirty(false);
+      setValidated(false);
+      setFilter("all");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -152,7 +155,7 @@ export default function App() {
         <div className="sidebar-footer">
           Feito para pôr tudo no lugar.
           <br />
-          <span>FileNest · versão 0.1</span>
+          <span>FileNest · versão 0.2</span>
         </div>
       </aside>
       <main>
@@ -162,7 +165,7 @@ export default function App() {
             <strong>Organizador</strong>
           </span>
           <span className="readonly">
-            <ShieldCheck size={15} /> Apenas pré-visualização
+            <ShieldCheck size={15} /> Alterações só com aprovação
           </span>
         </header>
         <div className="content">
@@ -184,7 +187,7 @@ export default function App() {
               <span>2</span> Rever sugestões
             </li>
             <li>
-              <span>3</span> Organizar <small>Em breve</small>
+              <span>3</span> Organizar e desfazer
             </li>
           </ol>
           <section className="source-panel">
@@ -231,7 +234,7 @@ export default function App() {
             </form>
             <div className="source-bottom">
               <span>
-                <LockKeyhole size={13} /> Os originais permanecem intactos.
+                <LockKeyhole size={13} /> A análise não altera os originais.
               </span>
               <button
                 className="text-button"
@@ -475,7 +478,7 @@ export default function App() {
                     <p role="status">
                       {validated
                         ? `${attention} ficheiro(s) a rever. Nenhum original foi alterado.`
-                        : "Valide nomes e colisões. Esta versão não aplica alterações."}
+                        : "Valide nomes e colisões antes de preparar a organização."}
                     </p>
                   </div>
                   <button
@@ -494,6 +497,19 @@ export default function App() {
               )}
             </section>
           )}
+          <OperationsPanel
+            plan={plan}
+            isDemo={isDemo}
+            disabled={!!busy}
+            onBusy={(value) => setBusy(value ? "operations" : "")}
+            onChanged={() => {
+              setPlan(null);
+              setOriginal(null);
+              setValidated(false);
+              setDirty(false);
+            }}
+            onCopyDemo={() => void copyDemo()}
+          />
           <footer className="page-footer">
             <ShieldCheck size={14} /> Privado por natureza. Seguro por decisão.
             <span>

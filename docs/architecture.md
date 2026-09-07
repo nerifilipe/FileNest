@@ -14,6 +14,24 @@
 
 `App.tsx` mantém o plano e uma cópia inicial em memória. Alterações marcam o plano como pendente de validação. Não guarda caminhos ou conteúdos no armazenamento do navegador. Uma análise bem-sucedida substitui o plano; se falhar, as edições anteriores permanecem.
 
+`OperationsPanel.tsx` apresenta uma lista final imutável, uma autorização desmarcada por defeito e o botão de confirmação. Uma edição no plano invalida a confirmação apresentada. A aplicação só envia a execução depois dessa autorização. O mesmo fluxo confirma o restauro, e o histórico é carregado novamente após reiniciar a página.
+
+## Execução e histórico
+
+`operations.py` concentra as escritas e usa SQLite da biblioteca padrão. `POST /api/operations/prepare` revalida o plano, verifica origens únicas e compara SHA-256, volume e identificador do ficheiro com os valores da análise. Guarda a lista exata de movimentos e a identidade da pasta; devolve um ID de operação. Identificadores de ficheiro são transportados como strings porque IDs de 64 bits do Windows podem exceder a precisão numérica do JavaScript.
+
+`POST /api/operations/{id}/apply` exige `approved: true` e usa exclusivamente o plano guardado, sem aceitar destinos novos. Verifica todo o lote antes do primeiro movimento e repete as verificações para cada ficheiro. Um bloqueio de ficheiro do sistema operativo serializa as mutações entre processos que partilham a mesma pasta de dados. O bloqueio é libertado quando o processo termina.
+
+Antes de mover, persiste `moving`; depois persiste `moved`. O rename do Windows falha se o destino existir. Em POSIX, criar um hard link também não substitui destinos; só depois é removido o nome antigo. Uma interrupção nesse intervalo pode deixar dois nomes para o mesmo inode. Não se usa `shutil.move`, que pode sobrescrever ou recorrer a cópia entre volumes.
+
+O lote passa por `prepared → applying → completed`, ou `partial` se uma operação falhar. Não há rollback automático: o histórico identifica movimentos realizados e o utilizador decide desfazer. Repetir um pedido de execução com o mesmo ID não executa novamente. Uma interrupção abrupta pode deixar `applying`; a recuperação é feita através do restauro, sem continuar automaticamente a organização.
+
+`POST /api/operations/{id}/undo` exige aprovação e percorre as ações por ordem inversa. Verifica a identidade e o hash no destino antes de repor o nome original, recusando substituir outros ficheiros. Persiste `restoring` antes de mover e `undone` depois. Se a operação foi interrompida, reconcilia ambos os caminhos com as identidades guardadas. Um duplicado só é removido se for comprovadamente outro hard link do mesmo ficheiro. Itens com conflitos são mantidos e os restantes podem ser restaurados; repetir o pedido tenta os itens ainda pendentes. Pastas vazias permanecem no disco.
+
+`POST /api/operations/history` devolve os últimos 50 registos, incluindo listas e erros. É POST para exigir o mesmo cabeçalho local dos restantes pedidos com dados privados. Os registos permanecem em `.filenest/history.sqlite3`, ignorado pelo Git. Contêm caminhos, estados e hashes, não conteúdos. Planos cuja confirmação foi cancelada mantêm-se como preparados, sem movimentos. Não existe ainda política de retenção ou paginação.
+
+`POST /api/demo-copy` cria uma pasta única em `.filenest/demos` com os exemplos fictícios. Organizar diretamente `examples/demo` é recusado pelo backend; a cópia permite verificar o fluxo real mantendo os exemplos versionados intactos.
+
 ## Fronteira de confiança
 
 A API escuta em 127.0.0.1. A interface usa o proxy do Vite, sem CORS permissivo. O backend verifica Host e Origin e exige um cabeçalho próprio nos POST. Um formulário externo não consegue enviá-lo; um fetch externo com o cabeçalho exige autorização CORS, que não é concedida. O cabeçalho não é um segredo nem autentica processos locais.
@@ -26,7 +44,7 @@ Os limites reduzem o custo, mas não isolam o parser. A descompressão de págin
 
 Um fornecedor real implementará o mesmo protocolo, mas terá de pedir consentimento antes de enviar dados. A interface deverá explicar fornecedor, conteúdo e finalidade e permitir recusar. O documento será delimitado como dados sem autoridade para alterar instruções; a saída será sempre validada independentemente do modelo.
 
-A execução será um módulo separado: recebe um plano aprovado, resolve novamente os caminhos, verifica identidade/integridade, impede sobrescritas, regista operações e trata falhas parciais. Histórico e desfazer dependerão desses registos, não apenas dos nomes mostrados na página.
+A execução atual protege contra colisões, alterações verificadas e falhas recuperáveis, mas não é uma sandbox do sistema de ficheiros. Processos maliciosos na mesma conta, corrupção da base ou perda física do disco ficam fora dessa garantia. O histórico não substitui backups e não recupera conteúdos posteriormente alterados ou apagados. O parser PDF deverá ganhar isolamento num processo separado.
 
 ## Estrutura
 
@@ -36,8 +54,10 @@ backend/models.py       Contratos Pydantic
 backend/extraction.py   Extração e erros por documento
 backend/providers.py    Protocolo e regras determinísticas
 backend/safety.py       Caminhos e colisões
+backend/operations.py   Execução aprovada, histórico e restauro
 backend/tests/          Testes unitários e da API
 frontend/src/           Interface React e estilos responsivos
+frontend/src/api.ts     Cliente HTTP local comum
 frontend/tests/         Fluxos Playwright
 examples/demo/          Documentos inteiramente fictícios
 scripts/create_demo.py  Gerador dos PDFs de teste

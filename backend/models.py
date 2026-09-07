@@ -15,6 +15,7 @@ class FileItem(Suggestion):
     status: str = "ready"
     included: bool = True
     issues: list[str] = Field(default_factory=list)
+    fingerprint: dict[str, str] | None = None
 
 
 class AnalyzeRequest(BaseModel):

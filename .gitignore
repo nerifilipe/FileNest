@@ -204,6 +204,7 @@ cython_debug/
 tempCodeRunnerFile.py
 
 # FileNest local development and private inputs
+.filenest/
 node_modules/
 *.tsbuildinfo
 .env.*

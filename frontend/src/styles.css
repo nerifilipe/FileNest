@@ -882,3 +882,75 @@ input[type="checkbox"] {
     transition: none !important;
   }
 }
+
+.operations-panel {
+  margin-top: 24px;
+}
+.approval-panel {
+  margin-top: 20px;
+  padding: 24px;
+  background: #fff;
+  border: 2px solid #769781;
+  border-radius: 12px;
+}
+.approval-panel > p {
+  font-size: 13px;
+}
+.action-list {
+  padding-left: 20px;
+  font-size: 12px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.action-list li {
+  margin-bottom: 8px;
+}
+.approval-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 22px 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.operation-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+.history-heading {
+  margin-top: 30px;
+}
+.history-heading p,
+.history-empty {
+  font-size: 12px;
+  color: #738277;
+}
+.history-card {
+  padding: 18px;
+  margin-top: 12px;
+  background: white;
+  border: 1px solid #dfe6e0;
+  border-radius: 10px;
+}
+.history-card .results-heading p {
+  font-size: 11px;
+  color: #778579;
+  margin: 6px 0;
+}
+.history-card summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: #426e5a;
+  padding: 8px 0;
+}
+.operation-message {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #e9f4ed;
+  color: #365f46;
+  padding: 16px;
+  border-radius: 8px;
+}
