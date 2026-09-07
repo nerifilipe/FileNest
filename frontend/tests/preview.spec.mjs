@@ -2,8 +2,10 @@ import { test, expect } from "@playwright/test";
 
 // Preview tests isolate the history panel; operations.spec exercises real persistence.
 test.beforeEach(async ({ page }) => {
-  await page.route("**/api/operations/history", (route) =>
-    route.fulfill({ json: [] }),
+  await page.route("**/api/operations/search", (route) =>
+    route.fulfill({
+      json: { items: [], total: 0, page: 1, pages: 1, page_size: 10 },
+    }),
   );
 });
 
@@ -23,12 +25,12 @@ test("demo, edit, validate, exclude and restore without external requests", asyn
     page.getByRole("heading", { name: "Um lugar para cada ficheiro." }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Explorar exemplo" }).click();
-  await expect(page.locator(".file-card")).toHaveCount(8);
+  await expect(page.locator(".file-card")).toHaveCount(9);
   await expect(
     page.getByText("PDF protegido.", { exact: false }),
   ).toBeVisible();
   await expect(
-    page.getByText("Pode ser necessário OCR.", { exact: false }),
+    page.getByText("Pode ser necessário OCR.", { exact: false }).first(),
   ).toBeVisible();
   await page.screenshot({ path: "../docs/demo-desktop.png", fullPage: true });
   const name = page.getByRole("textbox", {
@@ -67,7 +69,7 @@ test("mobile layout has no horizontal overflow", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await page.getByRole("button", { name: "Explorar exemplo" }).click();
-  await expect(page.locator(".file-card")).toHaveCount(8);
+  await expect(page.locator(".file-card")).toHaveCount(9);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,

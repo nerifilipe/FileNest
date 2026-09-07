@@ -24,6 +24,10 @@ Serviço/modelo indisponível na verificação inicial produz um erro compreens�
 
 `OperationsPanel.tsx` apresenta uma lista final imutável, uma autorização desmarcada por defeito e o botão de confirmação. Uma edição no plano invalida a confirmação apresentada. A aplicação só envia a execução depois dessa autorização. O mesmo fluxo confirma o restauro, e o histórico é carregado novamente após reiniciar a página.
 
+`ocr.py` combina renderização PDFium (pypdfium2/Pillow) e Tesseract local apenas nas páginas sem texto extraível. São limitadas a 20 páginas por documento, 16 milhões de píxeis por página e 25 segundos por chamada. O texto reconhecido segue o mesmo fornecedor e validação. `extraction_method` e `extraction_notes` tornam a origem e leituras parciais visíveis. O OCR nunca grava texto no PDF original.
+
+`POST /api/folders/pick` abre um diálogo Tk num processo separado, com limite de 180 segundos e exclusão mútua. Cancelar devolve um caminho nulo. A introdução manual continua disponível quando Tk não existe ou o diálogo falha.
+
 ## Execução e histórico
 
 `operations.py` concentra as escritas e usa SQLite da biblioteca padrão. `POST /api/operations/prepare` revalida o plano, verifica origens únicas e compara SHA-256, volume e identificador do ficheiro com os valores da análise. Guarda a lista exata de movimentos e a identidade da pasta; devolve um ID de operação. Identificadores de ficheiro são transportados como strings porque IDs de 64 bits do Windows podem exceder a precisão numérica do JavaScript.
@@ -36,7 +40,7 @@ O lote passa por `prepared → applying → completed`, ou `partial` se uma oper
 
 `POST /api/operations/{id}/undo` exige aprovação e percorre as ações por ordem inversa. Verifica a identidade e o hash no destino antes de repor o nome original, recusando substituir outros ficheiros. Persiste `restoring` antes de mover e `undone` depois. Se a operação foi interrompida, reconcilia ambos os caminhos com as identidades guardadas. Um duplicado só é removido se for comprovadamente outro hard link do mesmo ficheiro. Itens com conflitos são mantidos e os restantes podem ser restaurados; repetir o pedido tenta os itens ainda pendentes. Pastas vazias permanecem no disco.
 
-`POST /api/operations/history` devolve os últimos 50 registos, incluindo listas e erros. É POST para exigir o mesmo cabeçalho local dos restantes pedidos com dados privados. Os registos permanecem em `.filenest/history.sqlite3`, ignorado pelo Git. Contêm caminhos, estados e hashes, não conteúdos. Planos cuja confirmação foi cancelada mantêm-se como preparados, sem movimentos. Não existe ainda política de retenção ou paginação.
+`POST /api/operations/history` mantém compatibilidade com a versão anterior. A interface usa `/api/operations/search`: pesquisa parametrizada por caminhos sem distinguir acentos/maiúsculas, filtro por estado e páginas de 10 registos. `/api/operations/export` exporta todos os resultados filtrados, até 10 000. Contagem e leitura partilham uma transação SQLite. Os endpoints exigem o mesmo cabeçalho local dos restantes POST. Os registos permanecem em `.filenest/history.sqlite3`, ignorado pelo Git. Contêm caminhos, estados e hashes, não conteúdos. Planos cuja confirmação foi cancelada mantêm-se como preparados, sem movimentos. Não existe política de retenção automática.
 
 `POST /api/demo-copy` cria uma pasta única em `.filenest/demos` com os exemplos fictícios. Organizar diretamente `examples/demo` é recusado pelo backend; a cópia permite verificar o fluxo real mantendo os exemplos versionados intactos.
 
@@ -46,13 +50,13 @@ A API escuta em 127.0.0.1. A interface usa o proxy do Vite, sem CORS permissivo.
 
 Não existem clientes de fornecedores externos na aplicação; httpx serve apenas o Ollama em loopback e os testes. O React escapa os nomes normalmente, sem `dangerouslySetInnerHTML`. O texto completo não é devolvido ao frontend nem registado intencionalmente em logs. Caminhos e nomes apresentados continuam a ser informação privada ao capturar a interface fora da demonstração. O serviço Ollama instalado é uma dependência local de confiança; o FileNest não administra os seus logs ou outras configurações.
 
-Os limites reduzem o custo, mas não isolam o parser. A descompressão de páginas ocorre antes de verificar o tamanho descomprimido, e pode consumir recursos. Mover a extração para um processo com limite de execução é uma melhoria futura. Não alterar a pasta durante a análise: as verificações de ligações são pontuais, sem garantia completa contra corridas provocadas por processos locais.
+`processes.py` inicia um processo por documento e impõe um prazo de 30 segundos (90 com OCR). No Windows, um Job Object limita a memória agregada a 768 MB e termina os descendentes quando fechado; em POSIX usam-se limites de endereçamento e grupos de processos. O worker só recebe os dados depois de associado ao Job Object. O processo principal gere a pasta temporária e remove-a mesmo quando o worker excede o prazo. Isto limita recursos, mas não é uma sandbox de permissões do sistema operativo. Não alterar a pasta durante a análise: as verificações de ligações são pontuais, sem garantia completa contra corridas provocadas por processos locais.
 
 ## Evolução
 
 Um futuro fornecedor externo exigirá consentimento explícito antes de enviar dados para fora do computador. A interface deverá explicar fornecedor, conteúdo e finalidade e permitir recusar. O fornecedor local atual não acrescenta esse envio externo. Delimitar dados no prompt não resolve por si só prompt injection: a defesa operacional continua a ser ausência de ferramentas, validação independente e aprovação de uma lista fixa de movimentos.
 
-A execução atual protege contra colisões, alterações verificadas e falhas recuperáveis, mas não é uma sandbox do sistema de ficheiros. Processos maliciosos na mesma conta, corrupção da base ou perda física do disco ficam fora dessa garantia. O histórico não substitui backups e não recupera conteúdos posteriormente alterados ou apagados. O parser PDF deverá ganhar isolamento num processo separado.
+A execução atual protege contra colisões, alterações verificadas e falhas recuperáveis, mas não é uma sandbox do sistema de ficheiros. Processos maliciosos na mesma conta, corrupção da base ou perda física do disco ficam fora dessa garantia. O histórico não substitui backups e não recupera conteúdos posteriormente alterados ou apagados.
 
 ## Estrutura
 
@@ -60,6 +64,9 @@ A execução atual protege contra colisões, alterações verificadas e falhas r
 backend/main.py         API e coordenação
 backend/models.py       Contratos Pydantic
 backend/extraction.py   Extração e erros por documento
+backend/processes.py    Workers com limites de recursos
+backend/ocr.py          Reconhecimento local com Tesseract
+backend/folder_picker.py Diálogo nativo de seleção
 backend/providers.py    Protocolo e regras determinísticas
 backend/ollama_provider.py IA local e validação da resposta
 backend/safety.py       Caminhos e colisões

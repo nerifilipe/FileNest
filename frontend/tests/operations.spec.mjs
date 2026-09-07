@@ -23,7 +23,11 @@ test("copy demo, cancel approval, organize, reload history and undo", async ({
   await expect(approval).toBeVisible();
   await approval.screenshot({ path: "../tmp/approval-desktop.png" });
   await page.setViewportSize({ width: 390, height: 844 });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
   await approval.screenshot({ path: "../tmp/approval-mobile.png" });
   await page.setViewportSize({ width: 1280, height: 900 });
   await expect(

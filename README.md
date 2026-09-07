@@ -2,7 +2,7 @@
 
 **Um lugar para cada ficheiro.** Organizador local que lê documentos e propõe nomes e subpastas, com revisão antes de qualquer alteração.
 
-Projeto de portefólio de Engenharia Informática. A versão **0.3** implementa análise por **regras ou IA local**, revisão, organização com aprovação explícita, histórico e desfazer. A IA opcional usa Qwen3 4B através do Ollama no próprio computador. Analisar e validar não alteram os documentos; organizar muda os caminhos apenas depois da confirmação final. Nenhum documento é enviado para serviços externos.
+Projeto de portefólio de Engenharia Informática. A versão **1.0** implementa análise por **regras ou IA local**, revisão, organização com aprovação explícita, histórico e desfazer. A IA opcional usa Qwen3 4B através do Ollama no próprio computador. Analisar e validar não alteram os documentos; organizar muda os caminhos apenas depois da confirmação final. Nenhum documento é enviado para serviços externos.
 
 ![Interface com documentos fictícios](docs/demo-desktop.png)
 
@@ -32,7 +32,19 @@ npm run dev
 
 Abra [FileNest local](http://127.0.0.1:5173). Pare com `Ctrl+C` em cada terminal. As portas 8000 e 5173 têm de estar disponíveis. Os servidores destinam-se a uso local individual; não os exponha na rede.
 
-Se tinha uma versão anterior aberta, **reinicie o backend** com o mesmo comando e atualize a página. A integração usa `httpx`, já incluído nas dependências; não precisa do SDK Python do Ollama.
+Se tinha uma versão anterior aberta, atualize as dependências Python com o comando acima, **reinicie o backend** e atualize a página. Não precisa do SDK Python do Ollama.
+
+## OCR local opcional
+
+Depois de instalar as dependências Python, execute na raiz:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/setup_ocr.ps1
+```
+
+O script instala Tesseract via winget se necessário e descarrega português e inglês para `.filenest/tessdata`, ignorado pelo Git. Só a instalação requer Internet; nenhum documento é enviado. Ative **Reconhecer PDFs digitalizados com OCR local** e volte a analisar. `digitalizado.pdf` contém uma imagem fictícia que passa a ser legível com OCR. `sem_texto.pdf` é uma página vazia e continua sem conteúdo reconhecível.
+
+PDFs mistos mantêm o texto existente e reconhecem apenas páginas sem texto. Imagens temporárias são removidas após a extração; os PDFs originais não são regravados. Instalações personalizadas podem definir `FILENEST_TESSERACT` (executável) e `FILENEST_TESSDATA` (diretório com `por.traineddata` e `eng.traineddata`).
 
 ## IA local opcional: instalação simples
 
@@ -73,11 +85,14 @@ Se o serviço ou modelo faltar, a interface explica o problema e permite escolhe
 
 As edições existem apenas na memória da página e perdem-se ao atualizar ou analisar outra pasta. Validar não guarda nem executa o plano. Preparar guarda uma cópia exata da revisão final no histórico, mas ainda não move ficheiros. Cancelar a confirmação deixa esse registo como «Preparado · não executado».
 
-Para documentos próprios, introduza um caminho absoluto sem aspas, como `C:\Users\OSeuNome\Documents\Por organizar`. Prefira uma pasta fora do repositório para não adicionar documentos pessoais ao Git.
+Para documentos próprios, use **Escolher pasta** ou introduza um caminho absoluto sem aspas, como `C:\Users\OSeuNome\Documents\Por organizar`. Prefira uma pasta fora do repositório para não adicionar documentos pessoais ao Git. Veja também o [guião de apresentação](docs/demo.md).
 
 ## Implementado
 
-- PDFs com texto e TXT UTF-8, incluindo BOM.
+- Seletor nativo de pastas, com introdução manual alternativa.
+- PDFs com texto e TXT UTF-8, incluindo BOM; OCR local opcional para páginas digitalizadas.
+- Extração em processos separados com limites de tempo e memória.
+- Histórico pesquisável, paginado e exportável em JSON.
 - Categoria, nome atual, nome proposto, subpasta e justificação por documento.
 - Edição de nomes e subpastas, exclusão e reposição das sugestões.
 - Validação de nomes Windows, extensões, caminhos e colisões entre propostas e destinos existentes, incluindo conflitos ficheiro/pasta.
@@ -112,14 +127,15 @@ O acesso por caminho permite leitura no próprio computador, sem upload pelo nav
 - Apenas o primeiro nível da pasta; outros formatos e subpastas são ignorados.
 - Limites: 100 documentos, 2000 entradas na pasta, 10 MB por documento, 100 páginas por PDF e 50 000 caracteres para sugestões. Uma análise de cada vez.
 - A IA limita a análise a **20 documentos**, um de cada vez, e usa apenas os primeiros **6000 caracteres** de cada documento. O modelo usa contexto de 4096 tokens e até 256 tokens de resposta, sem modo de raciocínio prolongado. Não são enviados nomes/caminhos originais ao modelo; os próprios textos podem conter informação pessoal, processada localmente.
-- A espera por resposta tem limite de 60 segundos por pedido. Após cerca de 180 segundos de análise não se iniciam mais pedidos ao modelo; um pedido já em curso pode prolongar esse tempo. Extração e sistema operativo não têm um limite rígido de execução. A primeira análise pode demorar mais devido ao carregamento do modelo.
+- A espera por resposta tem limite de 60 segundos por pedido. Após cerca de 180 segundos de análise não se iniciam mais pedidos ao modelo; um pedido já em curso pode prolongar esse tempo. A extração tem limites separados por documento. A primeira análise pode demorar mais devido ao carregamento do modelo.
 - A IA pode omitir datas, propor nomes genéricos ou classificar incorretamente. Os resultados não são necessariamente idênticos entre versões e máquinas, mesmo com temperatura zero. Reveja-os sempre. O prompt reduz a influência de instruções presentes no documento, mas não constitui garantia contra manipulação semântica; o modelo não tem ferramentas nem acesso ao executor.
-- TXT tem de ser UTF-8. Não existe OCR. Ausência de texto não prova que o PDF seja digitalizado; `sem_texto.pdf` é uma página vazia para demonstrar o aviso.
+- TXT tem de ser UTF-8. O OCR reconhece português e inglês, mas pode produzir erros. Ausência de texto não prova que o PDF seja digitalizado; `sem_texto.pdf` é uma página vazia para demonstrar o aviso.
 - PDFs protegidos são recusados; não são pedidas palavras-passe.
 - Regras simples: a primeira categoria correspondente vence (Finanças, Formação, Trabalho, Pessoal, Outros). Os nomes podem ser genéricos e colidir, exigindo revisão.
-- Ainda não há seletor nativo de pastas, integração com APIs externas ou OCR.
+- Não existe integração com APIs externas.
 - Ligações simbólicas e junções são ignoradas na origem e recusadas nos destinos. UNC e unidades Windows de rede são recusadas. Pastas locais sincronizadas continuam sujeitas ao software de sincronização do utilizador.
-- O parser PDF não está isolado num processo com limites de memória/tempo; ficheiros complexos podem consumir recursos. A execução revalida caminhos e identidade antes dos movimentos, mas não oferece proteção completa contra processos maliciosos que troquem pastas no intervalo entre a verificação e a operação. Não altere a pasta durante a execução.
+- A extração corre num processo separado: 30 segundos por documento, ou 90 com OCR, e 768 MB (memória agregada do Job Object no Windows; espaço de endereçamento em POSIX). O OCR admite 20 páginas sem texto, 16 milhões de píxeis por página e 25 segundos por reconhecimento. PDFs complexos podem exceder estes limites.
+- A execução revalida caminhos e identidade antes dos movimentos, mas não oferece proteção completa contra processos maliciosos que troquem pastas no intervalo entre a verificação e a operação. Não altere a pasta durante a execução.
 - O lote não é uma transação única do sistema de ficheiros. Se houver falha a meio, os movimentos anteriores ficam registados e os seguintes não são executados. Use **Desfazer** para recuperar os ficheiros já movidos.
 - O restauro não substitui backups: ficheiros alterados, substituídos, eliminados ou caminhos ocupados bloqueiam o restauro desses itens. Não há cópias de segurança dos conteúdos nem restauro forçado. Pastas vazias criadas durante a organização são mantidas.
 - No Windows, os movimentos usam rename sem substituição. Em POSIX usam hard link seguido da remoção do nome antigo, exigindo suporte a hard links e o mesmo volume. A validação funcional foi feita no Windows.
@@ -167,16 +183,18 @@ Os PDFs fictícios estão incluídos. Para os regenerar deliberadamente:
 
 Este utilitário escreve apenas os três PDFs de demonstração em `examples/demo` e não faz parte da API.
 
+O PDF digitalizado fictício é gerado separadamente com `.\.venv\Scripts\python -m scripts.create_ocr_demo`. Os testes de OCR real são ignorados quando Tesseract e os idiomas não estão disponíveis. Os testes de limites e da interface do seletor continuam a correr sem OCR; o diálogo nativo é simulado nos testes de navegador.
+
 ## Roadmap
 
 1. **Avaliação da IA:** mais documentos fictícios, critérios de qualidade e comparação sistemática com as regras.
-2. **Extração isolada e OCR:** limites de execução por processo e documentos digitalizados.
-3. **Histórico mais completo:** paginação, pesquisa, exportação e retenção configurável.
-4. **Seletor nativo:** escolher a pasta sem introduzir o caminho.
+2. **Retenção configurável:** gerir o histórico sem perder informação necessária para desfazer.
+3. **Distribuição:** instalador e validação noutros sistemas operativos.
+4. **Mais formatos:** suporte seletivo e avaliação da qualidade do OCR.
 
 ## Dados locais e recuperação
 
-`.filenest/history.sqlite3` contém caminhos, hashes e estados das operações, mas não o texto extraído nem os conteúdos dos documentos. `.filenest/demos` contém apenas as cópias fictícias criadas pelo utilizador. Toda a pasta `.filenest/` está ignorada pelo Git. Não apague o histórico enquanto precisar de desfazer operações. A interface mostra os últimos 50 registos; os anteriores permanecem na base, sem paginação nesta versão.
+`.filenest/history.sqlite3` contém caminhos, hashes e estados das operações, mas não o texto extraído nem os conteúdos dos documentos. `.filenest/demos` contém apenas as cópias fictícias criadas pelo utilizador. Toda a pasta `.filenest/` está ignorada pelo Git. Não apague o histórico enquanto precisar de desfazer operações. A interface pagina todos os registos, 10 de cada vez, permite pesquisar caminhos e filtrar estados. A exportação JSON inclui todos os resultados filtrados, até 10 000 operações. Contém caminhos privados; reveja-a antes de partilhar. Não existe eliminação automática do histórico.
 
 Se a API parar durante uma operação, reinicie-a e consulte o histórico. O FileNest não retoma movimentos automaticamente. Use **Desfazer**; os estados persistidos permitem verificar o que realmente mudou no disco. Resolva ficheiros ocupados ou permissões e volte a tentar quando existir um restauro parcial.
 

@@ -19,12 +19,15 @@ class FileItem(Suggestion):
     fingerprint: dict[str, str] | None = None
     suggestion_source: Literal["demo-rules", "ollama"] = "demo-rules"
     provider_note: str = ""
+    extraction_method: str = "text"
+    extraction_notes: list[str] = Field(default_factory=list)
 
 
 class AnalyzeRequest(BaseModel):
     path: str = Field(default="", max_length=4096)
     demo: bool = False
     provider: Literal["demo-rules", "ollama"] = "demo-rules"
+    ocr: bool = False
 
 
 class Plan(BaseModel):
@@ -32,3 +35,10 @@ class Plan(BaseModel):
     provider: str = "demo-rules"
     items: list[FileItem] = Field(max_length=100)
     warnings: list[str] = Field(default_factory=list)
+
+
+class HistoryQuery(BaseModel):
+    search: str = Field(default="", max_length=200)
+    status: Literal["all", "prepared", "applying", "completed", "partial", "undoing", "undo_partial", "undone"] = "all"
+    page: int = Field(default=1, ge=1, le=1_000_000)
+    page_size: int = Field(default=10, ge=1, le=50)

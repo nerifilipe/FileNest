@@ -1,8 +1,10 @@
 import { test, expect } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
-  await page.route("**/api/operations/history", (route) =>
-    route.fulfill({ json: [] }),
+  await page.route("**/api/operations/search", (route) =>
+    route.fulfill({
+      json: { items: [], total: 0, page: 1, pages: 1, page_size: 10 },
+    }),
   );
 });
 
@@ -28,7 +30,7 @@ test("unavailable Ollama offers explicit rules choice", async ({ page }) => {
     "demo-rules",
   );
   await page.getByRole("button", { name: "Explorar exemplo" }).click();
-  await expect(page.locator(".file-card")).toHaveCount(8);
+  await expect(page.locator(".file-card")).toHaveCount(9);
 });
 
 test("mixed AI and rules suggestions are clearly labelled", async ({
@@ -110,7 +112,7 @@ test("live Ollama analyses only fictional samples", async ({ page }) => {
     page.getByText("Ollama e modelo local disponíveis."),
   ).toBeVisible();
   await page.getByRole("button", { name: "Explorar exemplo" }).click();
-  await expect(page.locator(".file-card")).toHaveCount(8, { timeout: 230_000 });
+  await expect(page.locator(".file-card")).toHaveCount(9, { timeout: 230_000 });
   await expect(page.locator(".source-badge.ai")).toHaveCount(5);
   await page.screenshot({ path: "../docs/ai-demo.png", fullPage: true });
 });

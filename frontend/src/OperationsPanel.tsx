@@ -61,9 +61,66 @@ export default function OperationsPanel({
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const confirmationRef = useRef<HTMLElement>(null);
+  const [search, setSearch] = useState("");
+  const [draftSearch, setDraftSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const historyRequest = useRef(0);
 
-  async function refresh() {
-    setRecords(await request<Operation[]>("operations/history", {}));
+  async function refresh(
+    nextPage = page,
+    nextSearch = search,
+    nextStatus = statusFilter,
+  ) {
+    const sequence = ++historyRequest.current;
+    setHistoryLoading(true);
+    try {
+      const result = await request<{
+        items: Operation[];
+        total: number;
+        page: number;
+        pages: number;
+      }>("operations/search", {
+        page: nextPage,
+        search: nextSearch,
+        status: nextStatus,
+      });
+      if (sequence === historyRequest.current) {
+        setRecords(result.items);
+        setTotal(result.total);
+        setPage(result.page);
+        setPages(result.pages);
+      }
+    } finally {
+      if (sequence === historyRequest.current) setHistoryLoading(false);
+    }
+  }
+
+  async function exportHistory() {
+    setError("");
+    try {
+      const result = await request<unknown>("operations/export", {
+        search,
+        status: statusFilter,
+      });
+      const url = URL.createObjectURL(
+        new Blob([JSON.stringify(result, null, 2)], {
+          type: "application/json",
+        }),
+      );
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "filenest-historico.json";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      setError((e as Error).message);
+    }
   }
   useEffect(() => {
     void refresh().catch(() =>
@@ -118,7 +175,10 @@ export default function OperationsPanel({
       setConfirmation(null);
       setApproved(false);
       onChanged();
-      await refresh();
+      setSearch("");
+      setDraftSearch("");
+      setStatusFilter("all");
+      await refresh(1, "", "all");
     } catch (e) {
       setError(
         `${(e as Error).message} Se perdeu a ligação, atualize o histórico antes de continuar.`,
@@ -249,11 +309,11 @@ export default function OperationsPanel({
       <div className="results-heading history-heading">
         <div>
           <h2>Histórico local</h2>
-          <p>As últimas 50 operações, guardadas neste computador.</p>
+          <p>{total} operação(ões) encontradas · guardadas neste computador.</p>
         </div>
         <button
           className="text-button"
-          disabled={disabled || pending}
+          disabled={disabled || pending || historyLoading}
           onClick={() =>
             void refresh()
               .then(() => setError(""))
@@ -263,10 +323,72 @@ export default function OperationsPanel({
           <RotateCcw size={14} /> Atualizar histórico
         </button>
       </div>
+      <form
+        className="history-controls"
+        onSubmit={(e) => {
+          e.preventDefault();
+          setSearch(draftSearch);
+          void refresh(1, draftSearch, statusFilter).catch(() =>
+            setError("Não foi possível pesquisar o histórico."),
+          );
+        }}
+      >
+        <label>
+          Pesquisar caminhos
+          <input
+            value={draftSearch}
+            maxLength={200}
+            onChange={(e) => setDraftSearch(e.target.value)}
+            placeholder="Nome do ficheiro ou pasta"
+            disabled={disabled || pending}
+          />
+        </label>
+        <label>
+          Estado da operação
+          <select
+            value={statusFilter}
+            disabled={disabled || pending}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              void refresh(1, search, e.target.value).catch(() =>
+                setError("Não foi possível filtrar o histórico."),
+              );
+            }}
+          >
+            <option value="all">Todos os estados</option>
+            {Object.entries(statuses).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="submit"
+          className="secondary"
+          disabled={disabled || pending || historyLoading}
+        >
+          Pesquisar
+        </button>
+        <button
+          type="button"
+          className="secondary"
+          disabled={disabled || pending || historyLoading || !total}
+          onClick={() => void exportHistory()}
+        >
+          Exportar resultados
+        </button>
+      </form>
+      <p className="history-export-note">
+        A exportação JSON inclui os caminhos locais e os resultados das
+        operações, sem o conteúdo dos documentos.
+      </p>
+      {historyLoading && <p aria-live="polite">A carregar o histórico…</p>}
       {!records.length && (
         <p className="history-empty">
-          Ainda não existem operações. O histórico aparecerá aqui quando
-          preparar uma organização.
+          {search || statusFilter !== "all"
+            ? "Nenhuma operação corresponde aos filtros. Experimente outra pesquisa ou estado."
+            : "Ainda não existem operações. O histórico aparecerá aqui quando preparar uma organização."}
         </p>
       )}
       {records.map((record) => (
@@ -314,6 +436,33 @@ export default function OperationsPanel({
           </details>
         </article>
       ))}
+      <nav className="history-pagination" aria-label="Páginas do histórico">
+        <button
+          className="secondary"
+          disabled={disabled || pending || historyLoading || page <= 1}
+          onClick={() =>
+            void refresh(page - 1).catch(() =>
+              setError("Não foi possível mudar de página."),
+            )
+          }
+        >
+          Anterior
+        </button>
+        <span>
+          Página {page} de {pages}
+        </span>
+        <button
+          className="secondary"
+          disabled={disabled || pending || historyLoading || page >= pages}
+          onClick={() =>
+            void refresh(page + 1).catch(() =>
+              setError("Não foi possível mudar de página."),
+            )
+          }
+        >
+          Seguinte
+        </button>
+      </nav>
     </section>
   );
 }

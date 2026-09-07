@@ -2,6 +2,7 @@ import { useState } from "react";
 import OperationsPanel from "./OperationsPanel";
 import { request } from "./api";
 import ProviderSelector, { type Provider } from "./ProviderSelector";
+import OcrControls from "./OcrControls";
 import {
   ArrowDown,
   ArrowRight,
@@ -32,6 +33,8 @@ type FileItem = {
   issues: string[];
   suggestion_source: Provider;
   provider_note: string;
+  extraction_method: string;
+  extraction_notes: string[];
 };
 export type Plan = {
   root: string;
@@ -51,6 +54,8 @@ export default function App() {
   const [filter, setFilter] = useState("all");
   const [isDemo, setIsDemo] = useState(false);
   const [provider, setProvider] = useState<Provider>("demo-rules");
+  const [useOcr, setUseOcr] = useState(false);
+  const [folderMessage, setFolderMessage] = useState("");
   const selected =
     plan?.items.filter((i) => i.included && i.status === "ready").length ?? 0;
   const attention =
@@ -63,7 +68,12 @@ export default function App() {
     setError("");
     setValidated(false);
     try {
-      const result = await request<Plan>("analyze", { path, demo, provider });
+      const result = await request<Plan>("analyze", {
+        path,
+        demo,
+        provider,
+        ocr: useOcr,
+      });
       setPlan(result);
       setOriginal(structuredClone(result));
       setDirty(false);
@@ -118,6 +128,7 @@ export default function App() {
       const result = await request<Plan>("analyze", {
         path: copy.path,
         provider,
+        ocr: useOcr,
       });
       setPath(copy.path);
       setPlan(result);
@@ -133,6 +144,27 @@ export default function App() {
     }
   }
 
+  async function pickFolder() {
+    setBusy("picker");
+    setError("");
+    setFolderMessage("Escolha uma pasta na janela do sistema.");
+    try {
+      const result = await request<{ path: string | null }>("folders/pick", {});
+      if (result.path) {
+        setPath(result.path);
+        setFolderMessage(
+          "Pasta selecionada. Clique em Analisar pasta para continuar.",
+        );
+      } else
+        setFolderMessage("Seleção cancelada. O caminho anterior foi mantido.");
+    } catch (e) {
+      setError((e as Error).message);
+      setFolderMessage("");
+    } finally {
+      setBusy("");
+    }
+  }
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -140,7 +172,7 @@ export default function App() {
           <span className="brand-mark">
             <Layers3 size={23} />
           </span>
-          FileNest<span className="version">BETA</span>
+          FileNest<span className="version">1.0</span>
         </a>
         <div className="workspace-label">ESPAÇO LOCAL</div>
         <div className="nav-item">
@@ -162,7 +194,7 @@ export default function App() {
         <div className="sidebar-footer">
           Feito para pôr tudo no lugar.
           <br />
-          <span>FileNest · versão 0.3</span>
+          <span>FileNest · versão 1.0</span>
         </div>
       </aside>
       <main>
@@ -238,6 +270,15 @@ export default function App() {
                     required
                   />
                 </div>
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={!!busy}
+                  onClick={() => void pickFolder()}
+                >
+                  <FolderOpen size={16} />
+                  {busy === "picker" ? "Janela aberta…" : "Escolher pasta"}
+                </button>
                 <button className="primary" disabled={!!busy || !path.trim()}>
                   {busy === "analyze" ? (
                     <LoaderCircle className="spin" size={17} />
@@ -247,7 +288,17 @@ export default function App() {
                   Analisar pasta
                 </button>
               </div>
+              {folderMessage && (
+                <p className="folder-message" aria-live="polite">
+                  {folderMessage}
+                </p>
+              )}
             </form>
+            <OcrControls
+              enabled={useOcr}
+              onChange={setUseOcr}
+              disabled={!!busy}
+            />
             <div className="source-bottom">
               <span>
                 <LockKeyhole size={13} /> A análise não altera os originais.
@@ -467,6 +518,16 @@ export default function App() {
                               </div>
                             </div>
                             <p className="reason">{item.reason}</p>
+                            {item.extraction_method === "ocr" && (
+                              <span className="source-badge">
+                                Texto reconhecido por OCR
+                              </span>
+                            )}
+                            {item.extraction_notes?.map((note) => (
+                              <p className="warning" key={note}>
+                                {note}
+                              </p>
+                            ))}
                             {item.provider_note && (
                               <p className="warning">{item.provider_note}</p>
                             )}

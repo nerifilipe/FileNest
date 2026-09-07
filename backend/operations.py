@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 import sqlite3
+import unicodedata
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -120,6 +121,28 @@ def history() -> list[dict]:
     with operation_lock, database() as db:
         rows = db.execute("SELECT record FROM operations ORDER BY rowid DESC LIMIT 50").fetchall()
     return [json.loads(row[0]) for row in rows]
+
+
+def search_history(search: str = "", status: str = "all", page: int = 1, page_size: int = 10, export: bool = False) -> dict:
+    def fold(text):
+        return "".join(c for c in unicodedata.normalize("NFKD", text or "") if not unicodedata.combining(c)).casefold()
+    where = """(? = 'all' OR json_extract(record, '$.status') = ?) AND
+        instr(fold(json_extract(record, '$.root') || ' ' || coalesce((
+            SELECT group_concat(json_extract(value, '$.source') || ' ' || json_extract(value, '$.destination'), ' ')
+            FROM json_each(record, '$.actions')
+        ), '')), fold(?)) > 0"""
+    args = (status, status, search.strip())
+    with operation_lock, database() as db:
+        db.create_function("fold", 1, fold, deterministic=True)
+        db.execute("BEGIN")
+        total = db.execute(f"SELECT count(*) FROM operations WHERE {where}", args).fetchone()[0]
+        if export and total > 10_000:
+            raise ValueError("A exportação excede 10 000 operações. Restrinja a pesquisa ou o estado.")
+        pages = max(1, (total + page_size - 1) // page_size)
+        page = min(page, pages)
+        limit, offset = (10_000, 0) if export else (page_size, (page - 1) * page_size)
+        rows = db.execute(f"SELECT record FROM operations WHERE {where} ORDER BY rowid DESC LIMIT ? OFFSET ?", (*args, limit, offset)).fetchall()
+    return {"items": [json.loads(row[0]) for row in rows], "total": total, "page": page, "pages": pages, "page_size": page_size}
 
 
 def checked_root(record: dict) -> Path:
