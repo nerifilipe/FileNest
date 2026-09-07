@@ -2,7 +2,7 @@
 
 **Um lugar para cada ficheiro.** Organizador local que lê documentos e propõe nomes e subpastas, com revisão antes de qualquer alteração.
 
-Projeto de portefólio de Engenharia Informática. A versão **0.2** implementa análise, revisão, **organização com aprovação explícita, histórico local e desfazer**. As sugestões usam regras determinísticas, sem IA nem serviços externos. Analisar e validar não alteram os documentos; organizar muda os caminhos apenas depois da confirmação final.
+Projeto de portefólio de Engenharia Informática. A versão **0.3** implementa análise por **regras ou IA local**, revisão, organização com aprovação explícita, histórico e desfazer. A IA opcional usa Qwen3 4B através do Ollama no próprio computador. Analisar e validar não alteram os documentos; organizar muda os caminhos apenas depois da confirmação final. Nenhum documento é enviado para serviços externos.
 
 ![Interface com documentos fictícios](docs/demo-desktop.png)
 
@@ -32,7 +32,32 @@ npm run dev
 
 Abra [FileNest local](http://127.0.0.1:5173). Pare com `Ctrl+C` em cada terminal. As portas 8000 e 5173 têm de estar disponíveis. Os servidores destinam-se a uso local individual; não os exponha na rede.
 
-Se já tinha a versão 0.1 aberta, **reinicie o backend** com o mesmo comando e atualize a página. Não existem novas dependências: SQLite faz parte do Python.
+Se tinha uma versão anterior aberta, **reinicie o backend** com o mesmo comando e atualize a página. A integração usa `httpx`, já incluído nas dependências; não precisa do SDK Python do Ollama.
+
+## IA local opcional: instalação simples
+
+O modo **Regras locais** continua a funcionar sem instalar modelos. Para ativar a IA:
+
+1. Instale ou abra o [Ollama para Windows](https://ollama.com/download/windows).
+2. Num terminal novo, descarregue o modelo uma vez:
+
+```powershell
+ollama pull qwen3:4b
+```
+
+Se `ollama` não for reconhecido e tiver usado o instalador padrão do Windows:
+
+```powershell
+& "$env:LOCALAPPDATA\Programs\Ollama\ollama.exe" pull qwen3:4b
+```
+
+3. Deixe o Ollama em execução. No FileNest, escolha **IA local · Qwen3 4B via Ollama**, clique em **Verificar Ollama** e analise a pasta ou a demonstração.
+
+O download do modelo requer Internet e ocupa cerca de 2,5 GB; a inferência é local. A aplicação comunica apenas com `127.0.0.1:11434`, usa o modelo fixo `qwen3:4b` e recusa aliases cloud detetados. Não configura serviços pagos, contas, Docker ou WSL. [Modelo oficial](https://ollama.com/library/qwen3:4b) · [Documentação Ollama para Windows](https://docs.ollama.com/windows).
+
+Se o serviço ou modelo faltar, a interface explica o problema e permite escolher regras. Se a IA falhar durante uma análise, os documentos restantes usam regras; a origem e o motivo são mostrados em cada resultado. Nunca são apresentados resultados de regras como se fossem IA.
+
+![Análise dos exemplos com IA local](docs/ai-demo.png)
 
 ## Demonstração em dois minutos
 
@@ -60,6 +85,8 @@ Para documentos próprios, introduza um caminho absoluto sem aspas, como `C:\Use
 - Identificação de PDFs protegidos e PDFs sem texto que podem necessitar de OCR.
 - Interface responsiva em português de Portugal, com comparação origem/destino.
 - Demonstração fictícia sem API, identificada explicitamente como regras locais.
+- Fornecedor opcional Qwen3 4B com saída JSON estruturada, verificação independente e identificação da origem por ficheiro.
+- Verificação do serviço/modelo local e alternativa por regras visível em caso de falha durante a análise.
 - Aprovação explícita de uma lista fixa de movimentos; só os ficheiros incluídos são organizados.
 - Revalidação dos originais e destinos antes de executar, sem sobrescrever ficheiros existentes.
 - Histórico SQLite com resultados por ficheiro e recuperação de operações interrompidas.
@@ -71,12 +98,12 @@ Para documentos próprios, introduza um caminho absoluto sem aspas, como `C:\Use
 ```text
 React + TypeScript → proxy local Vite → FastAPI
                                       ├─ extração (pypdf / UTF-8)
-                                      ├─ SuggestionProvider → DemoProvider
+                                      ├─ SuggestionProvider → regras / Ollama local
                                       ├─ validação independente de destinos
                                       └─ execução aprovada + histórico SQLite
 ```
 
-FastAPI/Pydantic definem contratos explícitos. O frontend guarda as edições em memória. O backend guarda os planos preparados e os resultados em SQLite, usando apenas a biblioteca padrão. Extração, sugestões, validação e execução são módulos separados: um futuro fornecedor de IA poderá substituir as regras, mantendo a política de caminhos. O texto é tratado como dados, nunca como instruções executáveis.
+FastAPI/Pydantic definem contratos explícitos. O frontend guarda as edições em memória. O backend guarda os planos preparados e os resultados em SQLite, usando apenas a biblioteca padrão. Extração, sugestões, validação e execução são módulos separados. Os fornecedores devolvem a mesma estrutura de sugestão; a política de caminhos e a aprovação não dependem do modelo. O texto é tratado como dados, nunca como instruções executáveis.
 
 O acesso por caminho permite leitura no próprio computador, sem upload pelo navegador. A API não devolve o texto completo à interface. Veja as decisões e fronteiras de confiança em [docs/architecture.md](docs/architecture.md).
 
@@ -84,10 +111,13 @@ O acesso por caminho permite leitura no próprio computador, sem upload pelo nav
 
 - Apenas o primeiro nível da pasta; outros formatos e subpastas são ignorados.
 - Limites: 100 documentos, 2000 entradas na pasta, 10 MB por documento, 100 páginas por PDF e 50 000 caracteres para sugestões. Uma análise de cada vez.
+- A IA limita a análise a **20 documentos**, um de cada vez, e usa apenas os primeiros **6000 caracteres** de cada documento. O modelo usa contexto de 4096 tokens e até 256 tokens de resposta, sem modo de raciocínio prolongado. Não são enviados nomes/caminhos originais ao modelo; os próprios textos podem conter informação pessoal, processada localmente.
+- A espera por resposta tem limite de 60 segundos por pedido. Após cerca de 180 segundos de análise não se iniciam mais pedidos ao modelo; um pedido já em curso pode prolongar esse tempo. Extração e sistema operativo não têm um limite rígido de execução. A primeira análise pode demorar mais devido ao carregamento do modelo.
+- A IA pode omitir datas, propor nomes genéricos ou classificar incorretamente. Os resultados não são necessariamente idênticos entre versões e máquinas, mesmo com temperatura zero. Reveja-os sempre. O prompt reduz a influência de instruções presentes no documento, mas não constitui garantia contra manipulação semântica; o modelo não tem ferramentas nem acesso ao executor.
 - TXT tem de ser UTF-8. Não existe OCR. Ausência de texto não prova que o PDF seja digitalizado; `sem_texto.pdf` é uma página vazia para demonstrar o aviso.
 - PDFs protegidos são recusados; não são pedidas palavras-passe.
 - Regras simples: a primeira categoria correspondente vence (Finanças, Formação, Trabalho, Pessoal, Outros). Os nomes podem ser genéricos e colidir, exigindo revisão.
-- Ainda não há seletor nativo de pastas, IA real ou OCR.
+- Ainda não há seletor nativo de pastas, integração com APIs externas ou OCR.
 - Ligações simbólicas e junções são ignoradas na origem e recusadas nos destinos. UNC e unidades Windows de rede são recusadas. Pastas locais sincronizadas continuam sujeitas ao software de sincronização do utilizador.
 - O parser PDF não está isolado num processo com limites de memória/tempo; ficheiros complexos podem consumir recursos. A execução revalida caminhos e identidade antes dos movimentos, mas não oferece proteção completa contra processos maliciosos que troquem pastas no intervalo entre a verificação e a operação. Não altere a pasta durante a execução.
 - O lote não é uma transação única do sistema de ficheiros. Se houver falha a meio, os movimentos anteriores ficam registados e os seguintes não são executados. Use **Desfazer** para recuperar os ficheiros já movidos.
@@ -110,6 +140,23 @@ Playwright usa Microsoft Edge instalado no Windows e inicia servidores nas porta
 
 Há testes de extração, sugestões, caminhos, colisões, limites, integridade dos exemplos, aprovação, alterações posteriores, falhas parciais, interrupções e restauro. Os testes de navegador cobrem demonstração, edição, exclusão, validação, reposição, carregamento, erros, ausência de pedidos externos, largura móvel e o ciclo completo organizar/recarregar histórico/desfazer.
 
+Os testes normais simulam a API do Ollama: não descarregam modelos nem dependem de uma GPU. Verificam também respostas inválidas, timeouts, redirecionamentos recusados, aliases cloud, limites de texto, formatos e identificação de alternativas. O teste de navegador com modelo real é opt-in:
+
+```powershell
+# Na pasta frontend, com Ollama e qwen3:4b disponíveis:
+$env:FILENEST_LIVE_AI='1'
+npx playwright test
+Remove-Item Env:FILENEST_LIVE_AI
+```
+
+Para comparar regras e IA exclusivamente nos documentos fictícios, na raiz:
+
+```powershell
+.\.venv\Scripts\python -X utf8 -m scripts.evaluate_local_ai
+```
+
+Numa execução local de verificação, os cinco documentos legíveis receberam sugestões de IA sem alternativa por regras, em cerca de 25 segundos. Por exemplo, as regras propuseram `documento.txt` para `ideias.txt`; o modelo propôs `Ideias-horta-receita.txt`. É uma observação dos exemplos, não um benchmark nem garantia de maior qualidade em documentos reais.
+
 `backend/requirements.txt` declara dependências diretas; `requirements-lock.txt` fixa o ambiente verificado. `frontend/package-lock.json` fixa as dependências npm.
 
 Os PDFs fictícios estão incluídos. Para os regenerar deliberadamente:
@@ -122,7 +169,7 @@ Este utilitário escreve apenas os três PDFs de demonstração em `examples/dem
 
 ## Roadmap
 
-1. **IA real:** novo fornecedor, saída estruturada e consentimento explícito antes de enviar conteúdos; mostrar os dados e o fornecedor e permitir permanecer local.
+1. **Avaliação da IA:** mais documentos fictícios, critérios de qualidade e comparação sistemática com as regras.
 2. **Extração isolada e OCR:** limites de execução por processo e documentos digitalizados.
 3. **Histórico mais completo:** paginação, pesquisa, exportação e retenção configurável.
 4. **Seletor nativo:** escolher a pasta sem introduzir o caminho.
@@ -136,3 +183,5 @@ Se a API parar durante uma operação, reinicie-a e consulte o histórico. O Fil
 Para desenvolvimento/testes, `FILENEST_DATA_DIR` permite escolher outra pasta de dados e `FILENEST_FRONTEND_ORIGIN` autoriza uma origem local adicional. Não são necessários para a execução normal; não coloque configurações pessoais no Git.
 
 Sem serviços pagos, telemetria, chaves de API ou publicação automática.
+
+Uma eventual integração com APIs externas exigirá informar quais os dados e fornecedor e obter consentimento explícito antes de enviar conteúdos. Essa integração não existe nesta versão.

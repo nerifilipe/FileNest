@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field
+from typing import Literal
 
 
 class Suggestion(BaseModel):
@@ -16,11 +17,14 @@ class FileItem(Suggestion):
     included: bool = True
     issues: list[str] = Field(default_factory=list)
     fingerprint: dict[str, str] | None = None
+    suggestion_source: Literal["demo-rules", "ollama"] = "demo-rules"
+    provider_note: str = ""
 
 
 class AnalyzeRequest(BaseModel):
     path: str = Field(default="", max_length=4096)
     demo: bool = False
+    provider: Literal["demo-rules", "ollama"] = "demo-rules"
 
 
 class Plan(BaseModel):

@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import time
 from pathlib import Path
 from threading import Lock
 from fastapi import FastAPI, HTTPException, Request
@@ -7,11 +8,12 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from .extraction import extract_text, ExtractionError
 from .models import AnalyzeRequest, FileItem, Plan
 from .providers import DemoProvider
+from .ollama_provider import OllamaProvider, ProviderError, MODEL, MAX_AI_FILES, MAX_AI_TEXT
 from .safety import local_root, is_link, validate_plan
 from . import operations
 from pydantic import BaseModel
 
-app = FastAPI(title="FileNest", version="0.2.0", docs_url=None, redoc_url=None)
+app = FastAPI(title="FileNest", version="0.3.0", docs_url=None, redoc_url=None)
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "testserver"])
 analysis_lock = Lock()
 DEMO_ROOT = Path(__file__).resolve().parents[1] / "examples" / "demo"
@@ -41,10 +43,11 @@ def analyze(request: AnalyzeRequest):
         raise HTTPException(400, "Escolha uma pasta local existente com caminho absoluto, sem ligações ou unidades de rede.") from None
     if not analysis_lock.acquire(blocking=False):
         raise HTTPException(409, "Já existe uma análise em curso. Aguarde e tente novamente.")
+    ai = None
     try:
         items = []
         warnings = []
-        provider = DemoProvider()
+        rules = DemoProvider()
         # Shallow scan is intentional: suggested folders are not reanalysed.
         with os.scandir(root) as entries:
             paths = []
@@ -58,26 +61,71 @@ def analyze(request: AnalyzeRequest):
                     paths.append(path)
                     if len(paths) > 100:
                         raise HTTPException(400, "A pasta excede 100 documentos PDF/TXT. Escolha uma pasta mais pequena.")
+        if request.provider == "ollama":
+            if len(paths) > MAX_AI_FILES:
+                raise HTTPException(400, "A IA local está limitada a 20 documentos por análise. Escolha uma pasta menor ou use regras locais.")
+            if paths:
+                ai = OllamaProvider()
+                try:
+                    ai.check()
+                except ProviderError as error:
+                    raise HTTPException(503, str(error)) from None
+        fallback_reason = ""
+        started = time.monotonic()
         for path in sorted(paths, key=lambda p: p.name.casefold()):
             try:
                 if is_link(path) or path.resolve().parent != root:
                     raise ExtractionError("unreadable", "O ficheiro mudou ou é uma ligação. Volte a analisar.")
                 size = path.stat().st_size
                 identity = operations.fingerprint(path)
-                suggestion = provider.suggest(extract_text(path), path.suffix)
+                extracted = extract_text(path)
+                source = "demo-rules"
+                note = ""
+                if ai and not fallback_reason:
+                    if time.monotonic() - started >= 180:
+                        fallback_reason = "Foi atingido o orçamento de tempo da IA para esta análise."
+                    else:
+                        try:
+                            suggestion = ai.suggest(extracted, path.suffix)
+                            source = "ollama"
+                            if len(extracted) > MAX_AI_TEXT:
+                                note = "A IA analisou apenas os primeiros 6000 caracteres extraídos."
+                        except ProviderError as error:
+                            fallback_reason = str(error)
+                if source == "demo-rules":
+                    suggestion = rules.suggest(extracted, path.suffix)
+                    if ai:
+                        note = "Alternativa por regras locais: " + fallback_reason
                 if operations.fingerprint(path) != identity:
                     raise ExtractionError("unreadable", "O ficheiro mudou durante a análise. Tente novamente.")
-                item = FileItem(id=path.name, current_path=path.name, size=size, fingerprint=identity, **suggestion.model_dump())
+                item = FileItem(id=path.name, current_path=path.name, size=size, fingerprint=identity,
+                                suggestion_source=source, provider_note=note, **suggestion.model_dump())
             except (ValueError, OSError) as error:
                 item = FileItem(id=path.name, current_path=path.name, size=0, category="Por analisar",
                                 proposed_name=path.name, proposed_folder="", status=getattr(error, "status", "unreadable"),
                                 included=False, reason=str(error) if isinstance(error, ExtractionError) else "Não foi possível aceder ao ficheiro.")
             items.append(item)
-        return validate_plan(Plan(root=str(root), items=items, warnings=warnings))
+        if fallback_reason:
+            warnings.append("A IA foi interrompida; as sugestões alternativas estão identificadas como regras locais.")
+        return validate_plan(Plan(root=str(root), provider=request.provider, items=items, warnings=warnings))
     except OSError:
         raise HTTPException(400, "Não foi possível ler a pasta. Verifique as permissões.") from None
     finally:
+        if ai:
+            ai.close()
         analysis_lock.release()
+
+
+@app.post("/api/ai/status")
+def ai_status():
+    provider = OllamaProvider()
+    try:
+        provider.check()
+        return {"available": True, "model": MODEL, "message": "Ollama e modelo local disponíveis."}
+    except ProviderError as error:
+        return {"available": False, "model": MODEL, "message": str(error)}
+    finally:
+        provider.close()
 
 
 @app.post("/api/validate", response_model=Plan)

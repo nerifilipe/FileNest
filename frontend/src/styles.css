@@ -954,3 +954,63 @@ input[type="checkbox"] {
   padding: 16px;
   border-radius: 8px;
 }
+
+.provider-selector {
+  padding: 16px;
+  margin-bottom: 22px;
+  background: #f6f8f6;
+  border: 1px solid #e1e9e2;
+  border-radius: 8px;
+}
+.provider-selector > label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.provider-selector select {
+  font: inherit;
+  font-size: 12px;
+  padding: 10px;
+  width: 100%;
+  color: #3b5845;
+  border: 1px solid #ccd9cf;
+  border-radius: 6px;
+  background: white;
+}
+.provider-selector p {
+  font-size: 11px;
+  color: #6e7c72;
+  margin: 10px 0 0;
+}
+.provider-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-top: 10px;
+  font-size: 11px;
+  color: #98652d;
+}
+.provider-status .available {
+  color: #416e53;
+}
+.file-badges {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.source-badge {
+  font-size: 9px;
+  white-space: nowrap;
+  color: #738077;
+  padding: 5px 7px;
+  border: 1px solid #e1e7e1;
+  border-radius: 5px;
+}
+.source-badge.ai {
+  background: #eef0fb;
+  border-color: #dfe2f1;
+  color: #616993;
+}

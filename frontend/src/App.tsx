@@ -1,6 +1,7 @@
 import { useState } from "react";
 import OperationsPanel from "./OperationsPanel";
 import { request } from "./api";
+import ProviderSelector, { type Provider } from "./ProviderSelector";
 import {
   ArrowDown,
   ArrowRight,
@@ -29,6 +30,8 @@ type FileItem = {
   status: string;
   included: boolean;
   issues: string[];
+  suggestion_source: Provider;
+  provider_note: string;
 };
 export type Plan = {
   root: string;
@@ -47,6 +50,7 @@ export default function App() {
   const [validated, setValidated] = useState(false);
   const [filter, setFilter] = useState("all");
   const [isDemo, setIsDemo] = useState(false);
+  const [provider, setProvider] = useState<Provider>("demo-rules");
   const selected =
     plan?.items.filter((i) => i.included && i.status === "ready").length ?? 0;
   const attention =
@@ -59,7 +63,7 @@ export default function App() {
     setError("");
     setValidated(false);
     try {
-      const result = await request<Plan>("analyze", { path, demo });
+      const result = await request<Plan>("analyze", { path, demo, provider });
       setPlan(result);
       setOriginal(structuredClone(result));
       setDirty(false);
@@ -111,7 +115,10 @@ export default function App() {
     setError("");
     try {
       const copy = await request<{ path: string }>("demo-copy", {});
-      const result = await request<Plan>("analyze", { path: copy.path });
+      const result = await request<Plan>("analyze", {
+        path: copy.path,
+        provider,
+      });
       setPath(copy.path);
       setPlan(result);
       setOriginal(structuredClone(result));
@@ -155,7 +162,7 @@ export default function App() {
         <div className="sidebar-footer">
           Feito para pôr tudo no lugar.
           <br />
-          <span>FileNest · versão 0.2</span>
+          <span>FileNest · versão 0.3</span>
         </div>
       </aside>
       <main>
@@ -176,7 +183,10 @@ export default function App() {
               <p>Descubra o que tem. Veja onde faz sentido guardar.</p>
             </div>
             <span className="mode-pill">
-              <span /> Regras locais · sem IA
+              <span />{" "}
+              {(plan?.provider ?? provider) === "ollama"
+                ? "IA local · Qwen3 4B"
+                : "Regras locais · sem IA"}
             </span>
           </section>
           <ol className="steps">
@@ -198,11 +208,17 @@ export default function App() {
               <div>
                 <h2>Comece por uma pasta</h2>
                 <p>
-                  PDFs com texto e ficheiros TXT · até 100 documentos · 10 MB
-                  por ficheiro
+                  PDFs com texto e ficheiros TXT · até{" "}
+                  {provider === "ollama" ? 20 : 100} documentos · 10 MB por
+                  ficheiro
                 </p>
               </div>
             </div>
+            <ProviderSelector
+              value={provider}
+              onChange={setProvider}
+              disabled={!!busy}
+            />
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -254,8 +270,10 @@ export default function App() {
           )}
           {busy === "analyze" && (
             <div className="loading" role="status">
-              <LoaderCircle className="spin" /> A extrair texto e a preparar
-              sugestões locais…
+              <LoaderCircle className="spin" />{" "}
+              {provider === "ollama"
+                ? "A analisar com IA local… O primeiro documento pode demorar enquanto o modelo carrega."
+                : "A extrair texto e a preparar sugestões locais…"}
             </div>
           )}
           {!plan && !busy && (
@@ -314,9 +332,12 @@ export default function App() {
                 </button>
               </div>
               <div className="demo-notice">
-                <span className="rule-tag">DEMONSTRAÇÃO</span> Sugestões
-                determinísticas por palavras-chave. Não são resultados de
-                inteligência artificial.
+                <span className="rule-tag">
+                  {plan.provider === "ollama" ? "IA LOCAL" : "REGRAS LOCAIS"}
+                </span>
+                {plan.provider === "ollama"
+                  ? `${plan.items.filter((i) => i.status === "ready" && i.suggestion_source === "ollama").length} sugestão(ões) da IA · ${plan.items.filter((i) => i.status === "ready" && i.suggestion_source === "demo-rules").length} por regras. Reveja os resultados: a IA pode errar.`
+                  : "Sugestões determinísticas por palavras-chave. Não são resultados de inteligência artificial."}
               </div>
               {plan.warnings.map((warning, i) => (
                 <p className="warning" key={i}>
@@ -382,7 +403,18 @@ export default function App() {
                             </span>
                             <strong>{item.current_path}</strong>
                           </label>
-                          <span className="category">{item.category}</span>
+                          <div className="file-badges">
+                            <span className="category">{item.category}</span>
+                            {item.status === "ready" && (
+                              <span
+                                className={`source-badge ${item.suggestion_source === "ollama" ? "ai" : ""}`}
+                              >
+                                {item.suggestion_source === "ollama"
+                                  ? "IA local"
+                                  : "Regras locais"}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         {item.status === "ready" ? (
                           <>
@@ -435,6 +467,9 @@ export default function App() {
                               </div>
                             </div>
                             <p className="reason">{item.reason}</p>
+                            {item.provider_note && (
+                              <p className="warning">{item.provider_note}</p>
+                            )}
                             {item.included &&
                               item.issues.map((issue) => (
                                 <p className="warning" key={issue}>
