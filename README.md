@@ -12,6 +12,18 @@ Requisitos: Python **3.11+**, Node.js **22.12+** e npm. Verificado com Python 3.
 
 Abra o PowerShell na raiz do repositório.
 
+### Arranque com um clique
+
+Depois da instalação inicial descrita abaixo, faça duplo clique em **`start.cmd`** na raiz do projeto. Também pode executar `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start.ps1` a partir da raiz.
+
+O script verifica o ambiente Python, as versões das dependências Python, Node.js/npm, a presença de Vite/React e as portas 8000/5173. Inicia os dois servidores em localhost e abre o navegador quando ambos responderem. Se faltar alguma dependência, mostra os comandos necessários; não faz instalações nem descarrega modelos automaticamente. OCR e Ollama são opcionais.
+
+Mantenha a janela aberta. Prima **Q** ou **Ctrl+C** para terminar os servidores que o script iniciou. Fechar a janela também termina esses processos. Termine qualquer organização/restauro antes de sair. Programas que já estavam a executar não são terminados; se as portas estiverem ocupadas, o arranque é recusado.
+
+Os logs de cada arranque ficam em `.filenest/logs/backend.log` e `frontend.log`, ignorados pelo Git, e são substituídos no arranque seguinte. Para verificar requisitos sem iniciar nada, use `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start.ps1 -CheckOnly`. O bypass aplica-se apenas a essa execução do script, sem alterar a política permanente do PowerShell.
+
+### Instalação inicial e arranque manual
+
 **Terminal 1 — API:**
 
 ```powershell
