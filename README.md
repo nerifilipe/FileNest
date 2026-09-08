@@ -73,6 +73,10 @@ Se o serviço ou modelo faltar, a interface explica o problema e permite escolhe
 
 ## Demonstração em dois minutos
 
+Depois da análise, clique em **Ver documento** para consultar o original ao lado das sugestões. Pode editar nomes e subpastas com a pré-visualização aberta. Os PDFs têm navegação por páginas; os TXT aparecem como texto simples.
+
+![Pré-visualização local de um documento fictício](docs/document-preview.png)
+
 1. Clique em **Experimentar demonstração**. Não precisa de chave de API.
 2. Observe `scan_001.pdf` → `Financas/2026-09-01_fatura.pdf`, a partir do texto fictício.
 3. Edite um nome ou subpasta e clique em **Validar plano**.
@@ -89,7 +93,12 @@ Para documentos próprios, use **Escolher pasta** ou introduza um caminho absolu
 
 ## Implementado
 
+- Pré-visualização de TXT e páginas PDF ao lado das sugestões, incluindo PDFs digitalizados sem OCR. Navegação por páginas e edição das sugestões sem sair da aplicação.
+
+- Progresso por documento e cancelamento da análise, conservando resultados concluídos.
+
 - Seletor nativo de pastas, com introdução manual alternativa.
+- Opção **Incluir subpastas**, com caminhos de origem completos na revisão e no restauro.
 - PDFs com texto e TXT UTF-8, incluindo BOM; OCR local opcional para páginas digitalizadas.
 - Extração em processos separados com limites de tempo e memória.
 - Histórico pesquisável, paginado e exportável em JSON.
@@ -120,11 +129,17 @@ React + TypeScript → proxy local Vite → FastAPI
 
 FastAPI/Pydantic definem contratos explícitos. O frontend guarda as edições em memória. O backend guarda os planos preparados e os resultados em SQLite, usando apenas a biblioteca padrão. Extração, sugestões, validação e execução são módulos separados. Os fornecedores devolvem a mesma estrutura de sugestão; a política de caminhos e a aprovação não dependem do modelo. O texto é tratado como dados, nunca como instruções executáveis.
 
-O acesso por caminho permite leitura no próprio computador, sem upload pelo navegador. A API não devolve o texto completo à interface. Veja as decisões e fronteiras de confiança em [docs/architecture.md](docs/architecture.md).
+O acesso por caminho permite leitura no próprio computador, sem upload pelo navegador. A análise não devolve o texto extraído à interface; ao clicar em **Ver documento**, a pré-visualização devolve apenas a página PDF pedida como imagem ou até 50 000 caracteres do TXT. Veja as decisões e fronteiras de confiança em [docs/architecture.md](docs/architecture.md).
 
 ## Limitações
 
-- Apenas o primeiro nível da pasta; outros formatos e subpastas são ignorados.
+- A pré-visualização PDF apresenta imagens locais de páginas, sem links, scripts ou seleção de texto. TXT mostra até 50 000 caracteres. Apenas documentos encontrados na análise têm acesso de pré-visualização; esse acesso expira após uma hora, reinício do backend ou substituição por análises posteriores (até 200 referências em memória). Ficheiros alterados ou movidos exigem nova análise. PDFs protegidos continuam sem pré-visualização.
+
+- Cancelar termina depois do documento em curso, incluindo a extração/OCR e eventual pedido à IA, sujeitos aos limites abaixo. Não inicia o documento seguinte. O plano cancelado é parcial e está identificado; organizá-lo continua a exigir aprovação. O progresso não representa uma estimativa de tempo.
+- A análise em segundo plano e o último resultado ficam apenas na memória do backend, até à próxima análise ou reinício. Atualizar/fechar a página perde o acompanhamento e não cancela o trabalho automaticamente; aguarde a conclusão antes de iniciar outra análise. Não são guardados conteúdos ou tarefas de análise no histórico SQLite.
+
+- Por defeito, apenas o primeiro nível da pasta. Ative **Incluir subpastas** para analisar até 20 níveis; outros formatos, ligações simbólicas e junções são ignorados. Os limites de 100 documentos (20 com IA) e 2000 entradas aplicam-se ao total da árvore. Uma subpasta sem acesso interrompe a análise, para não apresentar um plano incompleto.
+- Os destinos são relativos à pasta principal selecionada. O caminho atual completo distingue nomes repetidos em subpastas e é guardado para desfazer. Documentos já organizados também são analisados quando incluídos na seleção; destinos já existentes continuam assinalados como colisões. Pastas originais removidas posteriormente podem impedir o restauro; a aplicação não as recria automaticamente.
 - Limites: 100 documentos, 2000 entradas na pasta, 10 MB por documento, 100 páginas por PDF e 50 000 caracteres para sugestões. Uma análise de cada vez.
 - A IA limita a análise a **20 documentos**, um de cada vez, e usa apenas os primeiros **6000 caracteres** de cada documento. O modelo usa contexto de 4096 tokens e até 256 tokens de resposta, sem modo de raciocínio prolongado. Não são enviados nomes/caminhos originais ao modelo; os próprios textos podem conter informação pessoal, processada localmente.
 - A espera por resposta tem limite de 60 segundos por pedido. Após cerca de 180 segundos de análise não se iniciam mais pedidos ao modelo; um pedido já em curso pode prolongar esse tempo. A extração tem limites separados por documento. A primeira análise pode demorar mais devido ao carregamento do modelo.

@@ -165,7 +165,7 @@ def prepare(plan: Plan) -> dict:
         seen = set()
         actions = []
         for item in chosen:
-            if not valid_component(item.current_path) or item.current_path.casefold() in seen:
+            if not all(valid_component(part) for part in item.current_path.split("/")) or item.current_path.casefold() in seen:
                 raise ValueError("Origem inválida ou repetida no plano.")
             seen.add(item.current_path.casefold())
             source = safe_path(root, item.current_path)

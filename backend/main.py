@@ -13,7 +13,11 @@ from .providers import DemoProvider
 from .ollama_provider import OllamaProvider, ProviderError, MODEL, MAX_AI_FILES, MAX_AI_TEXT
 from .safety import local_root, is_link, validate_plan
 from . import operations
+from .scanning import discover_documents
 from pydantic import BaseModel
+from .analysis_jobs import jobs
+from . import preview
+from pydantic import Field
 
 app = FastAPI(title="FileNest", version="1.0.0", docs_url=None, redoc_url=None)
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "testserver"])
@@ -38,8 +42,45 @@ def health():
     return {"status": "ok", "provider": "demo-rules", "read_only": False}
 
 
-@app.post("/api/analyze", response_model=Plan)
-def analyze(request: AnalyzeRequest):
+class PreviewRequest(BaseModel):
+    token: str = Field(min_length=32, max_length=32, pattern=r"^[a-f0-9]+$")
+    page: int = Field(default=1, ge=1, le=100)
+
+
+preview_lock = Lock()
+
+
+@app.post("/api/preview")
+def preview_document(request: PreviewRequest):
+    from fastapi.responses import JSONResponse
+    if not preview_lock.acquire(blocking=False):
+        raise HTTPException(409, "Já existe uma pré-visualização em curso. Tente novamente.")
+    try:
+        return JSONResponse(preview.read(request.token, request.page), headers={"Cache-Control": "no-store"})
+    except (ValueError, OSError) as error:
+        raise HTTPException(400, str(error) if isinstance(error, ValueError) else "Não foi possível ler o documento. Volte a analisar.") from None
+    finally:
+        preview_lock.release()
+
+
+@app.post("/api/analyze")
+def start_analysis(request: AnalyzeRequest):
+    if request.background:
+        return jobs.start(lambda progress: analyze(request, progress))
+    return analyze(request)
+
+
+@app.post("/api/analysis/{job_id}/status")
+def analysis_status(job_id: str):
+    return jobs.snapshot(job_id)
+
+
+@app.post("/api/analysis/{job_id}/cancel")
+def cancel_analysis(job_id: str):
+    return jobs.snapshot(job_id, cancel=True)
+
+
+def analyze(request: AnalyzeRequest, progress=None):
     try:
         root = local_root(str(DEMO_ROOT) if request.demo else request.path)
     except (ValueError, OSError):
@@ -55,19 +96,12 @@ def analyze(request: AnalyzeRequest):
             ocr_state = ocr.status()
             if not ocr_state["available"]:
                 raise HTTPException(400, ocr_state["message"])
-        # Shallow scan is intentional: suggested folders are not reanalysed.
-        with os.scandir(root) as entries:
-            paths = []
-            for index, entry in enumerate(entries):
-                if index >= 2000:
-                    raise HTTPException(400, "A pasta excede 2000 entradas. Escolha uma pasta mais pequena.")
-                path = Path(entry.path)
-                if is_link(path):
-                    warnings.append(f"Ligação ignorada: {path.name}")
-                elif entry.is_file(follow_symlinks=False) and path.suffix.lower() in {".pdf", ".txt"}:
-                    paths.append(path)
-                    if len(paths) > 100:
-                        raise HTTPException(400, "A pasta excede 100 documentos PDF/TXT. Escolha uma pasta mais pequena.")
+        try:
+            paths, warnings = discover_documents(root, request.recursive)
+        except ValueError as error:
+            raise HTTPException(400, str(error)) from None
+        if progress and progress(total=len(paths)):
+            return Plan(root=str(root), provider=request.provider, items=[], warnings=["Análise cancelada antes de processar documentos."])
         if request.provider == "ollama":
             if len(paths) > MAX_AI_FILES:
                 raise HTTPException(400, "A IA local está limitada a 20 documentos por análise. Escolha uma pasta menor ou use regras locais.")
@@ -79,10 +113,13 @@ def analyze(request: AnalyzeRequest):
                     raise HTTPException(503, str(error)) from None
         fallback_reason = ""
         started = time.monotonic()
-        for path in sorted(paths, key=lambda p: p.name.casefold()):
+        for path in paths:
+            relative = path.relative_to(root).as_posix()
+            identity = None
+            if progress and progress(current=relative):
+                break
             try:
-                if is_link(path) or path.resolve().parent != root:
-                    raise ExtractionError("unreadable", "O ficheiro mudou ou é uma ligação. Volte a analisar.")
+                path = operations.safe_path(root, relative)
                 size = path.stat().st_size
                 identity = operations.fingerprint(path)
                 extraction = isolated_extract(path, request.ocr)
@@ -104,16 +141,22 @@ def analyze(request: AnalyzeRequest):
                     suggestion = rules.suggest(extracted, path.suffix)
                     if ai:
                         note = "Alternativa por regras locais: " + fallback_reason
-                if operations.fingerprint(path) != identity:
+                if operations.fingerprint(operations.safe_path(root, relative)) != identity:
                     raise ExtractionError("unreadable", "O ficheiro mudou durante a análise. Tente novamente.")
-                item = FileItem(id=path.name, current_path=path.name, size=size, fingerprint=identity,
+                item = FileItem(id=relative, current_path=relative, size=size, fingerprint=identity,
                                 suggestion_source=source, provider_note=note, extraction_method=extraction["method"],
                                 extraction_notes=extraction["notes"], **suggestion.model_dump())
             except (ValueError, OSError) as error:
-                item = FileItem(id=path.name, current_path=path.name, size=0, category="Por analisar",
+                item = FileItem(id=relative, current_path=relative, size=0, category="Por analisar",
                                 proposed_name=path.name, proposed_folder="", status=getattr(error, "status", "unreadable"),
                                 included=False, reason=str(error) if isinstance(error, ExtractionError) else "Não foi possível aceder ao ficheiro.")
+            if identity and item.status in {"ready", "ocr_required", "ocr_no_text", "empty"}:
+                item.preview_token = preview.register(root, relative, identity)
             items.append(item)
+            if progress:
+                progress(completed=len(items))
+        if progress and progress(current=""):
+            warnings.append(f"Análise cancelada: {len(items)} de {len(paths)} documentos concluídos. O plano contém apenas esses resultados.")
         if fallback_reason:
             warnings.append("A IA foi interrompida; as sugestões alternativas estão identificadas como regras locais.")
         return validate_plan(Plan(root=str(root), provider=request.provider, items=items, warnings=warnings))

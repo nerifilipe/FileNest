@@ -21,6 +21,7 @@ class FileItem(Suggestion):
     provider_note: str = ""
     extraction_method: str = "text"
     extraction_notes: list[str] = Field(default_factory=list)
+    preview_token: str = ""
 
 
 class AnalyzeRequest(BaseModel):
@@ -28,6 +29,8 @@ class AnalyzeRequest(BaseModel):
     demo: bool = False
     provider: Literal["demo-rules", "ollama"] = "demo-rules"
     ocr: bool = False
+    recursive: bool = False
+    background: bool = False
 
 
 class Plan(BaseModel):

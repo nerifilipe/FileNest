@@ -3,6 +3,8 @@ import OperationsPanel from "./OperationsPanel";
 import { request } from "./api";
 import ProviderSelector, { type Provider } from "./ProviderSelector";
 import OcrControls from "./OcrControls";
+import DocumentPreview from "./DocumentPreview";
+import { useAnalysis } from "./useAnalysis";
 import {
   ArrowDown,
   ArrowRight,
@@ -35,6 +37,7 @@ type FileItem = {
   provider_note: string;
   extraction_method: string;
   extraction_notes: string[];
+  preview_token?: string;
 };
 export type Plan = {
   root: string;
@@ -44,6 +47,7 @@ export type Plan = {
 };
 
 export default function App() {
+  const analysis = useAnalysis();
   const [path, setPath] = useState("");
   const [plan, setPlan] = useState<Plan | null>(null);
   const [original, setOriginal] = useState<Plan | null>(null);
@@ -55,6 +59,8 @@ export default function App() {
   const [isDemo, setIsDemo] = useState(false);
   const [provider, setProvider] = useState<Provider>("demo-rules");
   const [useOcr, setUseOcr] = useState(false);
+  const [recursive, setRecursive] = useState(false);
+  const [previewId, setPreviewId] = useState("");
   const [folderMessage, setFolderMessage] = useState("");
   const selected =
     plan?.items.filter((i) => i.included && i.status === "ready").length ?? 0;
@@ -68,11 +74,12 @@ export default function App() {
     setError("");
     setValidated(false);
     try {
-      const result = await request<Plan>("analyze", {
+      const result = await analysis.run({
         path,
         demo,
         provider,
         ocr: useOcr,
+        recursive,
       });
       setPlan(result);
       setOriginal(structuredClone(result));
@@ -125,10 +132,11 @@ export default function App() {
     setError("");
     try {
       const copy = await request<{ path: string }>("demo-copy", {});
-      const result = await request<Plan>("analyze", {
+      const result = await analysis.run({
         path: copy.path,
         provider,
         ocr: useOcr,
+        recursive,
       });
       setPath(copy.path);
       setPlan(result);
@@ -294,6 +302,23 @@ export default function App() {
                 </p>
               )}
             </form>
+            <div className="ocr-controls">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={recursive}
+                  disabled={!!busy}
+                  onChange={(e) => setRecursive(e.target.checked)}
+                />
+                Incluir subpastas
+              </label>
+              <p>
+                Até 20 níveis. Os limites de documentos aplicam-se ao total. Os
+                destinos são relativos à pasta selecionada; ligações simbólicas
+                e junções são ignoradas. Volte a analisar depois de alterar esta
+                opção.
+              </p>
+            </div>
             <OcrControls
               enabled={useOcr}
               onChange={setUseOcr}
@@ -325,6 +350,39 @@ export default function App() {
               {provider === "ollama"
                 ? "A analisar com IA local… O primeiro documento pode demorar enquanto o modelo carrega."
                 : "A extrair texto e a preparar sugestões locais…"}
+              {analysis.progress && (
+                <div>
+                  <p>
+                    {analysis.progress.total === null
+                      ? "A verificar a pasta…"
+                      : `${analysis.progress.completed} de ${analysis.progress.total} documentos concluídos`}
+                  </p>
+                  {analysis.progress.total !== null && (
+                    <progress
+                      aria-label="Progresso da análise"
+                      value={analysis.progress.completed}
+                      max={Math.max(1, analysis.progress.total)}
+                    />
+                  )}
+                  <p className="root-path">{analysis.progress.current}</p>
+                  <button
+                    className="secondary"
+                    disabled={analysis.progress.cancel_requested}
+                    onClick={() => void analysis.cancel()}
+                  >
+                    {analysis.progress.cancel_requested
+                      ? "A cancelar…"
+                      : "Cancelar análise"}
+                  </button>
+                  <p>
+                    O cancelamento termina depois do documento em curso. Os
+                    resultados concluídos são mantidos.
+                  </p>
+                  {analysis.cancelError && (
+                    <p role="alert">{analysis.cancelError}</p>
+                  )}
+                </div>
+              )}
             </div>
           )}
           {!plan && !busy && (
@@ -417,7 +475,7 @@ export default function App() {
                   <FolderOpen size={32} />
                   <h3>Nenhum documento compatível</h3>
                   <p>
-                    Esta pasta não contém PDFs ou TXT no primeiro nível.
+                    Não foram encontrados PDFs ou TXT na seleção analisada.
                     <br />
                     Escolha outra pasta ou experimente a demonstração.
                   </p>
@@ -433,7 +491,7 @@ export default function App() {
                     )
                     .map((item) => (
                       <article
-                        className={`file-card ${!item.included ? "excluded" : ""}`}
+                        className={`file-card ${!item.included ? "excluded" : ""} ${previewId === item.id && item.preview_token ? "has-preview" : ""}`}
                         key={item.id}
                       >
                         <div className="file-top">
@@ -455,6 +513,23 @@ export default function App() {
                             <strong>{item.current_path}</strong>
                           </label>
                           <div className="file-badges">
+                            {item.preview_token && (
+                              <button
+                                className="text-button"
+                                disabled={!!busy}
+                                aria-expanded={previewId === item.id}
+                                aria-label={`Pré-visualizar ${item.current_path}`}
+                                onClick={() =>
+                                  setPreviewId(
+                                    previewId === item.id ? "" : item.id,
+                                  )
+                                }
+                              >
+                                {previewId === item.id
+                                  ? "Fechar documento"
+                                  : "Ver documento"}
+                              </button>
+                            )}
                             <span className="category">{item.category}</span>
                             {item.status === "ready" && (
                               <span
@@ -467,6 +542,13 @@ export default function App() {
                             )}
                           </div>
                         </div>
+                        {previewId === item.id && item.preview_token && (
+                          <DocumentPreview
+                            key={item.preview_token}
+                            token={item.preview_token}
+                            name={item.current_path}
+                          />
+                        )}
                         {item.status === "ready" ? (
                           <>
                             <div className="comparison">

@@ -43,7 +43,7 @@ def windows_job(process, memory_mb):
     return lambda: kernel.CloseHandle(job)
 
 
-def run_worker(module: str, payload: dict, timeout: float = 30, memory_mb: int = 768) -> dict:
+def run_worker(module: str, payload: dict, timeout: float = 30, memory_mb: int = 768, max_output_bytes: int = 400_000) -> dict:
     process = subprocess.Popen(
         [sys.executable, "-X", "utf8", "-m", module],
         cwd=Path(__file__).resolve().parents[1], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
@@ -60,7 +60,7 @@ def run_worker(module: str, payload: dict, timeout: float = 30, memory_mb: int =
             output, _ = process.communicate(json.dumps(payload).encode(), timeout=timeout)
         except subprocess.TimeoutExpired:
             raise WorkerError("timeout", "A extração excedeu o tempo permitido. Experimente um documento mais pequeno.") from None
-        if process.returncode != 0 or len(output) > 400_000:
+        if process.returncode != 0 or len(output) > max_output_bytes:
             raise WorkerError("resource_limit", "O processo de extração terminou inesperadamente ou excedeu os recursos disponíveis.")
         try:
             result = json.loads(output)
