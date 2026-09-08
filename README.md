@@ -158,6 +158,19 @@ O acesso por caminho permite leitura no próprio computador, sem upload pelo nav
 
 ## Verificar
 
+### GitHub Actions
+
+O workflow [FileNest CI](.github/workflows/ci.yml) executa automaticamente em cada push e pull request. Também pode ser iniciado no separador **Actions → FileNest CI → Run workflow**, depois de existir na branch predefinida.
+
+- **Backend tests (Windows):** Python 3.14, instalação de `requirements-lock.txt`, verificação de dependências e todos os testes pytest. O OCR real é ignorado quando Tesseract/idiomas não estão disponíveis; symlinks podem ser ignorados se faltarem permissões. Os motivos aparecem no relatório dos testes.
+- **Frontend build:** Node.js 24, `npm ci` e `npm run build`, incluindo a verificação TypeScript.
+
+Os jobs usam cache de dependências, permissões de leitura e limites de duração. Uma nova execução na mesma referência cancela a anterior. Não precisam de secrets, Ollama, GPU ou serviços pagos configurados, e não fazem deploy nem publicam ficheiros. Os testes Playwright e a avaliação de IA real continuam a ser executados localmente com os comandos abaixo; não estão incluídos neste workflow.
+
+Após enviar o commit, consulte **Actions** para ver o resultado real no GitHub. Se um job falhar, abra-o para consultar o passo e o erro.
+
+### Verificação local
+
 Na raiz:
 
 ```powershell
