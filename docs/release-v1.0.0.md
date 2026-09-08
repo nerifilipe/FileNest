@@ -1,8 +1,8 @@
 # FileNest v1.0.0 — Organização de documentos com processamento local
 
-Notas preparadas para uma release; a tag e a release ainda não foram criadas.
+[Release v1.0.0 no GitHub](https://github.com/nerifilipe/FileNest/releases/tag/v1.0.0).
 
-## Descrição para a release
+## Descrição
 
 O FileNest analisa PDFs e ficheiros TXT e sugere nomes e subpastas a partir do conteúdo. O utilizador pode consultar o documento, editar as sugestões e aprovar uma lista de movimentos. O histórico permite desfazer, desde que os ficheiros não tenham sido alterados ou substituídos e os caminhos originais estejam disponíveis.
 
@@ -22,7 +22,7 @@ O processamento é local. A demonstração funciona com regras determinísticas,
 
 ### Experimentar
 
-Consulte a secção **Executar no Windows** do README para instalar Python/Node e as dependências. Depois, execute `start.cmd` e clique em **Explorar exemplo**. Para experimentar movimentos reais, use **Criar cópia para organizar**; os exemplos versionados permanecem intactos.
+Consulte a secção **Get started on Windows** do README para instalar Python/Node e as dependências. Depois, execute `start.cmd` e clique em **Explorar exemplo**. Para experimentar movimentos reais, use **Criar cópia para organizar**; os exemplos versionados permanecem intactos.
 
 A distribuição é em código-fonte. Não inclui instalador, Python, Node.js, Tesseract ou modelos Ollama. Não existe serviço alojado nem é necessário configurar uma API paga.
 
@@ -38,7 +38,3 @@ A instalação limpa do commit `b2c3952`, num caminho com espaços, passou com 9
 - Não existe uma transação única para o lote. Falhas parciais ficam registadas para recuperação explícita.
 - Desfazer não recupera conteúdos editados ou apagados e não substitui backups.
 - Validação funcional centrada em Windows; não existe instalador nem suporte a outros formatos.
-
-## Preparação antes de publicar
-
-Rever a licença MIT proposta em `LICENSE`, fazer commit dos ficheiros finais e confirmar os dois jobs do CI nesse commit. Só depois criar a tag `v1.0.0` e a release correspondente. Não anexar `.filenest`, ambientes virtuais, modelos, documentos pessoais ou logs. As notas acima podem ser copiadas para a descrição da release; esta secção de preparação não faz parte do texto público.

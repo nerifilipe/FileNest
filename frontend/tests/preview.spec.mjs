@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { screenshotPath } from "./screenshots.mjs";
 
 // Preview tests isolate the history panel; operations.spec exercises real persistence.
 test.beforeEach(async ({ page }) => {
@@ -32,7 +33,7 @@ test("demo, edit, validate, exclude and restore without external requests", asyn
   await expect(
     page.getByText("Pode ser necessário OCR.", { exact: false }).first(),
   ).toBeVisible();
-  await page.screenshot({ path: "../docs/demo-desktop.png", fullPage: true });
+  await page.screenshot({ path: screenshotPath("demo-desktop.png"), fullPage: true });
   const name = page.getByRole("textbox", {
     name: "Nome proposto de scan_001.pdf",
     exact: true,
@@ -75,7 +76,7 @@ test("mobile layout has no horizontal overflow", async ({ page }) => {
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
-  await page.screenshot({ path: "../docs/demo-mobile.png", fullPage: true });
+  await page.screenshot({ path: screenshotPath("demo-mobile.png"), fullPage: true });
 });
 
 test("loading and unavailable local API have useful states", async ({

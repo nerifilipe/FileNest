@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { screenshotPath } from "./screenshots.mjs";
 
 test("read TXT and render PDF while editing suggestions", async ({ page }) => {
   await page.goto("/");
@@ -50,7 +51,7 @@ test("read TXT and render PDF while editing suggestions", async ({ page }) => {
       }),
     });
   await expect(card.getByRole("img", { name: "Página 1 de scan_001.pdf", exact: true })).toBeVisible();
-  await card.screenshot({ path: "../docs/document-preview.png" });
+  await card.screenshot({ path: screenshotPath("document-preview.png") });
   await expect(
     page.getByLabel("Nome proposto de ideias.txt", { exact: true }),
   ).toHaveValue("ideias-revistas.txt");
