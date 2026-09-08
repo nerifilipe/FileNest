@@ -6,6 +6,8 @@ Projeto de portefólio de Engenharia Informática. A versão **1.0** implementa 
 
 ![Interface com documentos fictícios](docs/demo-desktop.png)
 
+[Arquitetura](docs/architecture.md) · [Verificação de instalação](docs/installation-check.md) · [Notas preparadas para v1.0.0](docs/release-v1.0.0.md)
+
 ## Executar no Windows
 
 Requisitos: Python **3.11+**, Node.js **22.12+** e npm. Verificado com Python 3.14 e Node 25. A instalação inicial das dependências requer Internet; a aplicação não requer serviços externos.
@@ -183,6 +185,8 @@ Após enviar o commit, consulte **Actions** para ver o resultado real no GitHub.
 
 ### Verificação local
 
+Uma instalação limpa dos ficheiros versionados, incluindo um caminho com espaços, foi verificada no Windows. Veja o [relatório de instalação](docs/installation-check.md) para os resultados e limites dessa verificação.
+
 Na raiz:
 
 ```powershell
@@ -243,3 +247,7 @@ Para desenvolvimento/testes, `FILENEST_DATA_DIR` permite escolher outra pasta de
 Sem serviços pagos, telemetria, chaves de API ou publicação automática.
 
 Uma eventual integração com APIs externas exigirá informar quais os dados e fornecedor e obter consentimento explícito antes de enviar conteúdos. Essa integração não existe nesta versão.
+
+## Licença
+
+O código original do FileNest está abrangido pela [licença MIT](LICENSE). Bibliotecas, ferramentas e modelos usados pelo projeto mantêm as suas próprias licenças.
