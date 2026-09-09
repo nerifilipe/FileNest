@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { screenshotPath } from "./screenshots.mjs";
+import { captureReview, screenshotPath } from "./screenshots.mjs";
 
 // Preview tests isolate the history panel; operations.spec exercises real persistence.
 test.beforeEach(async ({ page }) => {
@@ -33,10 +33,7 @@ test("demo, edit, validate, exclude and restore without external requests", asyn
   await expect(
     page.getByText("OCR may be required.", { exact: false }).first(),
   ).toBeVisible();
-  await page.screenshot({
-    path: screenshotPath("demo-desktop.png"),
-    fullPage: true,
-  });
+  await captureReview(page, "demo-desktop.png");
   const name = page.getByRole("textbox", {
     name: "Proposed name for scan_001.pdf",
     exact: true,

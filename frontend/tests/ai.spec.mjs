@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { screenshotPath } from "./screenshots.mjs";
+import { captureReview } from "./screenshots.mjs";
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/operations/search", (route) =>
@@ -112,8 +112,5 @@ test("live Ollama analyses only fictional samples", async ({ page }) => {
   await page.getByRole("button", { name: "Explore sample files" }).click();
   await expect(page.locator(".file-card")).toHaveCount(9, { timeout: 230_000 });
   await expect(page.locator(".source-badge.ai")).toHaveCount(5);
-  await page.screenshot({
-    path: screenshotPath("ai-demo.png"),
-    fullPage: true,
-  });
+  await captureReview(page, "ai-demo.png");
 });
