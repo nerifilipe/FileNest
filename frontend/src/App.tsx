@@ -89,7 +89,7 @@ export default function App() {
     } catch (e) {
       setError(
         e instanceof TypeError
-          ? "Não foi possível contactar o servidor local. Confirme que o backend está a executar na porta 8000."
+          ? "Could not reach the local server. Make sure the backend is running on port 8000."
           : (e as Error).message,
       );
     } finally {
@@ -119,7 +119,7 @@ export default function App() {
     } catch (e) {
       setError(
         e instanceof TypeError
-          ? "Servidor local indisponível. As suas edições continuam nesta página."
+          ? "Local server unavailable. Your edits are still on this page."
           : (e as Error).message,
       );
     } finally {
@@ -155,16 +155,14 @@ export default function App() {
   async function pickFolder() {
     setBusy("picker");
     setError("");
-    setFolderMessage("Escolha uma pasta na janela do sistema.");
+    setFolderMessage("Choose a folder in the system dialog.");
     try {
       const result = await request<{ path: string | null }>("folders/pick", {});
       if (result.path) {
         setPath(result.path);
-        setFolderMessage(
-          "Pasta selecionada. Clique em Analisar pasta para continuar.",
-        );
+        setFolderMessage("Folder selected. Click Analyze folder to continue.");
       } else
-        setFolderMessage("Seleção cancelada. O caminho anterior foi mantido.");
+        setFolderMessage("Selection cancelled. The previous path was kept.");
     } catch (e) {
       setError((e as Error).message);
       setFolderMessage("");
@@ -182,62 +180,61 @@ export default function App() {
           </span>
           FileNest<span className="version">1.0</span>
         </a>
-        <div className="workspace-label">ESPAÇO LOCAL</div>
+        <div className="workspace-label">YOUR WORKSPACE</div>
         <div className="nav-item">
-          <FolderOpen size={18} /> Organizador <span>01</span>
+          <FolderOpen size={18} /> Organizer <span>01</span>
         </div>
         <div className="sidebar-note">
           <LockKeyhole size={19} />
           <strong>
-            Os seus ficheiros,
+            Your files.
             <br />
-            no seu computador.
+            Your computer.
           </strong>
-          <p>
-            A análise corre localmente. Nenhum conteúdo é enviado para serviços
-            externos.
-          </p>
-          <span className="local-dot">Sem ligação a IA externa</span>
+          <p>Analysis runs on your computer. Your documents stay with you.</p>
+          <span className="local-dot">No external AI services</span>
         </div>
         <div className="sidebar-footer">
-          Feito para pôr tudo no lugar.
+          A little order. A lot of clarity.
           <br />
-          <span>FileNest · versão 1.0</span>
+          <span>FileNest · version 1.0</span>
         </div>
       </aside>
       <main>
         <header className="topbar">
           <span>
-            Espaço local <ChevronRight size={14} />
-            <strong>Organizador</strong>
+            Workspace <ChevronRight size={14} />
+            <strong>Organizer</strong>
           </span>
           <span className="readonly">
-            <ShieldCheck size={15} /> Alterações só com aprovação
+            <ShieldCheck size={15} /> Every change, approved by you
           </span>
         </header>
         <div className="content">
           <section className="page-heading">
             <div>
-              <div className="eyebrow">MENOS CONFUSÃO. MAIS CLAREZA.</div>
-              <h1>Um lugar para cada ficheiro.</h1>
-              <p>Descubra o que tem. Veja onde faz sentido guardar.</p>
+              <div className="eyebrow">LESS CLUTTER. MORE POSSIBILITY.</div>
+              <h1>
+                Make room for <em>what matters.</em>
+              </h1>
+              <p>Turn scattered documents into a considered collection.</p>
             </div>
             <span className="mode-pill">
               <span />{" "}
               {(plan?.provider ?? provider) === "ollama"
-                ? "IA local · Qwen3 4B"
-                : "Regras locais · sem IA"}
+                ? "Local AI · Qwen3 4B"
+                : "Local rules · no AI"}
             </span>
           </section>
           <ol className="steps">
             <li className="active">
-              <span>{plan ? <Check size={14} /> : "1"}</span> Escolher pasta
+              <span>{plan ? <Check size={14} /> : "1"}</span> Choose folder
             </li>
             <li className={plan ? "active" : ""}>
-              <span>2</span> Rever sugestões
+              <span>2</span> Review suggestions
             </li>
             <li>
-              <span>3</span> Organizar e desfazer
+              <span>3</span> Organize & undo
             </li>
           </ol>
           <section className="source-panel">
@@ -246,11 +243,10 @@ export default function App() {
                 <FolderOpen size={21} />
               </div>
               <div>
-                <h2>Comece por uma pasta</h2>
+                <h2>Start with a folder</h2>
                 <p>
-                  PDFs com texto e ficheiros TXT · até{" "}
-                  {provider === "ollama" ? 20 : 100} documentos · 10 MB por
-                  ficheiro
+                  PDF and TXT documents · up to{" "}
+                  {provider === "ollama" ? 20 : 100} documents · 10 MB per file
                 </p>
               </div>
             </div>
@@ -265,7 +261,7 @@ export default function App() {
                 void analyze(false);
               }}
             >
-              <label htmlFor="folder-path">Caminho da pasta local</label>
+              <label htmlFor="folder-path">Local folder path</label>
               <div className="path-row">
                 <div className="path-input">
                   <Folder size={18} />
@@ -273,7 +269,7 @@ export default function App() {
                     id="folder-path"
                     value={path}
                     onChange={(e) => setPath(e.target.value)}
-                    placeholder="C:\Users\OSeuNome\Documents\Por organizar"
+                    placeholder="C:\Users\YourName\Documents\Unsorted"
                     disabled={!!busy}
                     required
                   />
@@ -285,7 +281,7 @@ export default function App() {
                   onClick={() => void pickFolder()}
                 >
                   <FolderOpen size={16} />
-                  {busy === "picker" ? "Janela aberta…" : "Escolher pasta"}
+                  {busy === "picker" ? "Dialog open…" : "Choose folder"}
                 </button>
                 <button className="primary" disabled={!!busy || !path.trim()}>
                   {busy === "analyze" ? (
@@ -293,7 +289,7 @@ export default function App() {
                   ) : (
                     <ArrowRight size={17} />
                   )}{" "}
-                  Analisar pasta
+                  Analyze folder
                 </button>
               </div>
               {folderMessage && (
@@ -310,13 +306,12 @@ export default function App() {
                   disabled={!!busy}
                   onChange={(e) => setRecursive(e.target.checked)}
                 />
-                Incluir subpastas
+                Include subfolders
               </label>
               <p>
-                Até 20 níveis. Os limites de documentos aplicam-se ao total. Os
-                destinos são relativos à pasta selecionada; ligações simbólicas
-                e junções são ignoradas. Volte a analisar depois de alterar esta
-                opção.
+                Explore up to 20 levels. Limits apply to the whole selection.
+                Destinations stay inside your chosen folder. Links are skipped.
+                Analyze again after changing this option.
               </p>
             </div>
             <OcrControls
@@ -326,15 +321,15 @@ export default function App() {
             />
             <div className="source-bottom">
               <span>
-                <LockKeyhole size={13} /> A análise não altera os originais.
+                <LockKeyhole size={13} /> Your originals stay untouched during
+                analysis.
               </span>
               <button
                 className="text-button"
                 onClick={() => void analyze(true)}
                 disabled={!!busy}
               >
-                <Play size={14} /> Experimentar demonstração{" "}
-                <ArrowRight size={14} />
+                <Play size={14} /> Try the demo <ArrowRight size={14} />
               </button>
             </div>
           </section>
@@ -348,18 +343,18 @@ export default function App() {
             <div className="loading" role="status">
               <LoaderCircle className="spin" />{" "}
               {provider === "ollama"
-                ? "A analisar com IA local… O primeiro documento pode demorar enquanto o modelo carrega."
-                : "A extrair texto e a preparar sugestões locais…"}
+                ? "Analyzing with local AI… The first document may take longer while the model loads."
+                : "Reading documents and preparing suggestions…"}
               {analysis.progress && (
                 <div>
                   <p>
                     {analysis.progress.total === null
-                      ? "A verificar a pasta…"
-                      : `${analysis.progress.completed} de ${analysis.progress.total} documentos concluídos`}
+                      ? "Checking your folder…"
+                      : `${analysis.progress.completed} of ${analysis.progress.total} documents completed`}
                   </p>
                   {analysis.progress.total !== null && (
                     <progress
-                      aria-label="Progresso da análise"
+                      aria-label="Analysis progress"
                       value={analysis.progress.completed}
                       max={Math.max(1, analysis.progress.total)}
                     />
@@ -371,12 +366,12 @@ export default function App() {
                     onClick={() => void analysis.cancel()}
                   >
                     {analysis.progress.cancel_requested
-                      ? "A cancelar…"
-                      : "Cancelar análise"}
+                      ? "Cancelling…"
+                      : "Cancel analysis"}
                   </button>
                   <p>
-                    O cancelamento termina depois do documento em curso. Os
-                    resultados concluídos são mantidos.
+                    Cancellation takes effect after the current document.
+                    Completed results are kept.
                   </p>
                   {analysis.cancelError && (
                     <p role="alert">{analysis.cancelError}</p>
@@ -398,19 +393,20 @@ export default function App() {
                   <FileText />
                 </span>
               </div>
-              <h2>Da pasta desorganizada ao plano claro.</h2>
+              <h2>A fresh start for your files.</h2>
               <p>
-                Escolha uma pasta ou explore documentos fictícios.
+                Choose a folder, or take a look around with our sample
+                documents.
                 <br />
-                Reveja nomes e destinos antes de qualquer alteração.
+                Preview every name and destination before anything moves.
               </p>
               <button className="secondary" onClick={() => void analyze(true)}>
-                <Play size={15} /> Explorar exemplo
+                <Play size={15} /> Explore sample files
               </button>
               <div className="preview-example">
                 <span>scan_001.pdf</span>
                 <ArrowRight size={16} />
-                <strong>Financas/2026-09-01_fatura.pdf</strong>
+                <strong>Finance/2026-09-01_invoice.pdf</strong>
               </div>
             </section>
           )}
@@ -419,13 +415,11 @@ export default function App() {
               <div className="results-heading">
                 <div>
                   <h2>
-                    O seu plano de organização{" "}
+                    Your organization plan{" "}
                     <span className="count">{plan.items.length}</span>
                   </h2>
                   <p className="root-path">
-                    {isDemo
-                      ? "Documentos fictícios · examples/demo"
-                      : plan.root}
+                    {isDemo ? "Fictional documents · examples/demo" : plan.root}
                   </p>
                 </div>
                 <button
@@ -437,16 +431,30 @@ export default function App() {
                     setValidated(false);
                   }}
                 >
-                  <RotateCcw size={14} /> Repor sugestões
+                  <RotateCcw size={14} /> Reset suggestions
                 </button>
+              </div>
+              <div className="result-summary" aria-label="Plan summary">
+                <div>
+                  <strong>{plan.items.length}</strong>
+                  <span>Documents found</span>
+                </div>
+                <div>
+                  <strong>{selected}</strong>
+                  <span>Included in plan</span>
+                </div>
+                <div>
+                  <strong>{attention}</strong>
+                  <span>Need your review</span>
+                </div>
               </div>
               <div className="demo-notice">
                 <span className="rule-tag">
-                  {plan.provider === "ollama" ? "IA LOCAL" : "REGRAS LOCAIS"}
+                  {plan.provider === "ollama" ? "LOCAL AI" : "LOCAL RULES"}
                 </span>
                 {plan.provider === "ollama"
-                  ? `${plan.items.filter((i) => i.status === "ready" && i.suggestion_source === "ollama").length} sugestão(ões) da IA · ${plan.items.filter((i) => i.status === "ready" && i.suggestion_source === "demo-rules").length} por regras. Reveja os resultados: a IA pode errar.`
-                  : "Sugestões determinísticas por palavras-chave. Não são resultados de inteligência artificial."}
+                  ? `${plan.items.filter((i) => i.status === "ready" && i.suggestion_source === "ollama").length} AI suggestions · ${plan.items.filter((i) => i.status === "ready" && i.suggestion_source === "demo-rules").length} from rules. Review the results: AI can make mistakes.`
+                  : "Deterministic suggestions based on keywords. These are rules, not AI results."}
               </div>
               {plan.warnings.map((warning, i) => (
                 <p className="warning" key={i}>
@@ -459,25 +467,25 @@ export default function App() {
                     className={filter === "all" ? "selected" : ""}
                     onClick={() => setFilter("all")}
                   >
-                    Todos <span>{plan.items.length}</span>
+                    All <span>{plan.items.length}</span>
                   </button>
                   <button
                     className={filter === "attention" ? "selected" : ""}
                     onClick={() => setFilter("attention")}
                   >
-                    A rever <span>{attention}</span>
+                    Needs review <span>{attention}</span>
                   </button>
                 </div>
-                <span>{selected} incluídos no plano</span>
+                <span>{selected} included in the plan</span>
               </div>
               {!plan.items.length ? (
                 <div className="empty">
                   <FolderOpen size={32} />
-                  <h3>Nenhum documento compatível</h3>
+                  <h3>No supported documents</h3>
                   <p>
-                    Não foram encontrados PDFs ou TXT na seleção analisada.
+                    No PDF or TXT documents were found in this selection.
                     <br />
-                    Escolha outra pasta ou experimente a demonstração.
+                    Choose another folder or try the demo.
                   </p>
                 </div>
               ) : (
@@ -498,7 +506,7 @@ export default function App() {
                           <label className="file-select">
                             <input
                               type="checkbox"
-                              aria-label={`Incluir ${item.current_path}`}
+                              aria-label={`Include ${item.current_path}`}
                               checked={item.included}
                               disabled={!!busy || item.status !== "ready"}
                               onChange={(e) =>
@@ -518,7 +526,7 @@ export default function App() {
                                 className="text-button"
                                 disabled={!!busy}
                                 aria-expanded={previewId === item.id}
-                                aria-label={`Pré-visualizar ${item.current_path}`}
+                                aria-label={`Preview ${item.current_path}`}
                                 onClick={() =>
                                   setPreviewId(
                                     previewId === item.id ? "" : item.id,
@@ -526,8 +534,8 @@ export default function App() {
                                 }
                               >
                                 {previewId === item.id
-                                  ? "Fechar documento"
-                                  : "Ver documento"}
+                                  ? "Close preview"
+                                  : "View document"}
                               </button>
                             )}
                             <span className="category">{item.category}</span>
@@ -536,8 +544,8 @@ export default function App() {
                                 className={`source-badge ${item.suggestion_source === "ollama" ? "ai" : ""}`}
                               >
                                 {item.suggestion_source === "ollama"
-                                  ? "IA local"
-                                  : "Regras locais"}
+                                  ? "Local AI"
+                                  : "Local rules"}
                               </span>
                             )}
                           </div>
@@ -554,7 +562,7 @@ export default function App() {
                             <div className="comparison">
                               <div className="current">
                                 <span className="field-label">
-                                  CAMINHO ATUAL
+                                  CURRENT PATH
                                 </span>
                                 <p>{item.current_path}</p>
                                 <small>
@@ -564,13 +572,13 @@ export default function App() {
                               <ArrowRight className="compare-arrow" size={18} />
                               <div className="destination">
                                 <span className="field-label">
-                                  DESTINO PROPOSTO
+                                  PROPOSED DESTINATION
                                 </span>
                                 <div className="destination-fields">
                                   <label>
-                                    <span>Subpasta</span>
+                                    <span>Folder</span>
                                     <input
-                                      aria-label={`Subpasta de ${item.current_path}`}
+                                      aria-label={`Folder for ${item.current_path}`}
                                       value={item.proposed_folder}
                                       maxLength={500}
                                       disabled={!!busy || !item.included}
@@ -583,9 +591,9 @@ export default function App() {
                                   </label>
                                   <span className="slash">/</span>
                                   <label>
-                                    <span>Nome do ficheiro</span>
+                                    <span>File name</span>
                                     <input
-                                      aria-label={`Nome proposto de ${item.current_path}`}
+                                      aria-label={`Proposed name for ${item.current_path}`}
                                       value={item.proposed_name}
                                       maxLength={120}
                                       disabled={!!busy || !item.included}
@@ -602,7 +610,7 @@ export default function App() {
                             <p className="reason">{item.reason}</p>
                             {item.extraction_method === "ocr" && (
                               <span className="source-badge">
-                                Texto reconhecido por OCR
+                                Text recognized by OCR
                               </span>
                             )}
                             {item.extraction_notes?.map((note) => (
@@ -618,7 +626,7 @@ export default function App() {
                                 <p className="warning" key={issue}>
                                   <TriangleAlert size={14} />
                                   {issue}
-                                  {dirty && <small> · revalidar</small>}
+                                  {dirty && <small> · validate again</small>}
                                 </p>
                               ))}
                           </>
@@ -633,11 +641,11 @@ export default function App() {
                   {filter === "attention" && attention === 0 && (
                     <div className="empty">
                       <Check />
-                      <h3>Nada a rever nesta lista</h3>
+                      <h3>All clear in this list</h3>
                       <p>
                         {dirty
-                          ? "Valide as suas edições para atualizar os avisos."
-                          : "Não foram detetados problemas no plano."}
+                          ? "Validate your edits to refresh the warnings."
+                          : "No issues were found in this plan."}
                       </p>
                     </div>
                   )}
@@ -648,15 +656,15 @@ export default function App() {
                   <div>
                     <strong>
                       {dirty
-                        ? "Existem edições por validar"
+                        ? "Your edits are ready to validate"
                         : validated
-                          ? "Validação concluída"
-                          : "Tudo começa com uma boa revisão."}
+                          ? "Validation complete"
+                          : "A good review makes all the difference."}
                     </strong>
                     <p role="status">
                       {validated
-                        ? `${attention} ficheiro(s) a rever. Nenhum original foi alterado.`
-                        : "Valide nomes e colisões antes de preparar a organização."}
+                        ? `${attention} files need review. No originals were changed.`
+                        : "Check names and collisions before preparing the organization."}
                     </p>
                   </div>
                   <button
@@ -669,7 +677,7 @@ export default function App() {
                     ) : (
                       <ShieldCheck size={16} />
                     )}{" "}
-                    Validar plano
+                    Validate plan
                   </button>
                 </div>
               )}
@@ -689,10 +697,10 @@ export default function App() {
             onCopyDemo={() => void copyDemo()}
           />
           <footer className="page-footer">
-            <ShieldCheck size={14} /> Privado por natureza. Seguro por decisão.
+            <ShieldCheck size={14} /> Local by design. Yours by default.
             <span>
-              Extração local <ArrowDown size={12} /> Regras{" "}
-              <ArrowDown size={12} /> Revisão
+              Local extraction <ArrowDown size={12} /> Rules{" "}
+              <ArrowDown size={12} /> Review
             </span>
           </footer>
         </div>

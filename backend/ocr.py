@@ -24,16 +24,16 @@ def executable():
 def status():
     command = executable()
     if not command:
-        return {"available": False, "message": "OCR indisponível. Instale Tesseract com os idiomas português e inglês; consulte o README.", "languages": []}
+        return {"available": False, "message": "OCR unavailable. Install Tesseract with English language data; see the README.", "languages": []}
     try:
         response = subprocess.run([command, *language_args(), "--list-langs"], capture_output=True, timeout=5,
                                   creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
         languages = response.stdout.decode("utf-8", errors="replace").splitlines()
-        if response.returncode != 0 or not {"por", "eng"}.issubset(languages):
-            return {"available": False, "message": "Instale os idiomas por e eng no Tesseract para ativar OCR.", "languages": languages[1:]}
-        return {"available": True, "message": "OCR local disponível · português e inglês.", "languages": ["por", "eng"]}
+        if response.returncode != 0 or "eng" not in languages:
+            return {"available": False, "message": "Install English (eng) language data in Tesseract to enable OCR.", "languages": languages[1:]}
+        return {"available": True, "message": "Local OCR available · English.", "languages": ["eng"]}
     except (OSError, subprocess.TimeoutExpired):
-        return {"available": False, "message": "Não foi possível iniciar o Tesseract local.", "languages": []}
+        return {"available": False, "message": "Could not start local Tesseract.", "languages": []}
 
 
 def recognize_page(pdf, index: int, scratch: Path) -> str:
@@ -44,7 +44,7 @@ def recognize_page(pdf, index: int, scratch: Path) -> str:
         width, height = page.get_size()
         scale = 2.0
         if width <= 0 or height <= 0 or width * height * scale * scale > MAX_PIXELS:
-            raise ExtractionError("too_large", "A página excede o limite de 16 megapíxeis para OCR.")
+            raise ExtractionError("too_large", "The page exceeds the 16-megapixel OCR limit.")
         bitmap = page.render(scale=scale)
         image_path = scratch / "page.png"
         image = bitmap.to_pil()
@@ -52,16 +52,16 @@ def recognize_page(pdf, index: int, scratch: Path) -> str:
         image.close()
         command = executable()
         if not command:
-            raise ExtractionError("ocr_unavailable", "Tesseract indisponível. Consulte a configuração de OCR.")
+            raise ExtractionError("ocr_unavailable", "Tesseract unavailable. Check the OCR setup instructions.")
         # Output is bounded by the worker job memory limit, then truncated for the app.
-        result = subprocess.run([command, str(image_path), "stdout", *language_args(), "-l", "por+eng", "--psm", "3"],
+        result = subprocess.run([command, str(image_path), "stdout", *language_args(), "-l", "eng", "--psm", "3"],
                                 stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=25,
                                 creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
         if result.returncode != 0:
-            raise ExtractionError("ocr_failed", "O OCR não conseguiu ler esta página.")
+            raise ExtractionError("ocr_failed", "OCR could not read this page.")
         return result.stdout.decode("utf-8", errors="replace")[:MAX_TEXT]
     except subprocess.TimeoutExpired:
-        raise ExtractionError("timeout", "O OCR excedeu 25 segundos numa página.") from None
+        raise ExtractionError("timeout", "OCR exceeded 25 seconds on a page.") from None
     finally:
         if bitmap is not None:
             bitmap.close()

@@ -12,7 +12,7 @@ def main():
     except ExtractionError as error:
         result = {"error": str(error), "status": error.status}
     except MemoryError:
-        result = {"error": "A extração excedeu a memória disponível.", "status": "resource_limit"}
+        result = {"error": "Extraction exceeded the available memory.", "status": "resource_limit"}
     print(json.dumps(result, ensure_ascii=True))
 
 

@@ -33,7 +33,7 @@ export function useAnalysis() {
       setProgress(job);
     }
     if (job.status === "failed" || !job.plan)
-      throw new Error(job.error || "A análise não devolveu resultados.");
+      throw new Error(job.error || "The analysis returned no results.");
     return job.plan;
   }
   async function cancel() {
@@ -45,7 +45,7 @@ export function useAnalysis() {
       );
       setCancelError("");
     } catch {
-      setCancelError("Não foi possível pedir o cancelamento. Tente novamente.");
+      setCancelError("Could not request cancellation. Try again.");
     }
   }
   return { run, progress, cancel, cancelError };

@@ -1,22 +1,13 @@
-# Apresentar o FileNest
+# Demonstrating FileNest
 
-## Guião de dois minutos
+1. Start the app using `start.cmd` after installing dependencies.
+2. Choose **Explore sample files**. The default engine uses deterministic rules, not AI.
+3. Compare current and proposed paths, open a document preview, and edit a suggestion.
+4. Try an invalid folder such as `../outside`, then validate to see the error.
+5. Exclude a document or reset the suggestions.
+6. Create a demo copy to try approved moves without changing the versioned samples.
+7. Prepare the organization, review the final list, explicitly approve, and open history to undo.
 
-1. Explique o problema: documentos com nomes pouco úteis, organizados com revisão humana e processamento local.
-2. Use **Explorar exemplo**, sem serviços externos. Compare `scan_001.pdf` com o destino sugerido. Mostre a identificação **Regras locais**.
-3. Edite uma subpasta para `../fora`, valide e mostre a recusa. Corrija e exclua um documento.
-4. Com OCR instalado, ative-o e repita a demonstração: `digitalizado.pdf` passa a ter texto reconhecido. O PDF protegido e a página vazia continuam assinalados.
-5. Crie uma cópia para organizar, prepare, reveja e confirme. Mostre o histórico, a pesquisa e a exportação JSON.
-6. Desfaça com aprovação. Os conteúdos não mudam; os caminhos originais regressam. Uma alteração posterior no documento bloqueia o restauro desse item.
-7. Opcionalmente, selecione IA local com Ollama. Compare as sugestões e explique que a validação dos destinos é independente do modelo.
+The nine fictional samples include five readable documents, an image-only invoice, a protected PDF, a blank PDF, and an empty TXT. Optional English OCR reads the scanned invoice. Optional Ollama generates English suggestions locally; unavailable or failed AI is clearly reported.
 
-## Decisões para explicar numa entrevista
-
-- Extração, sugestões e execução têm contratos separados: trocar o modelo não lhe dá autoridade para mover ficheiros.
-- Processos separados limitam tempo e memória dos parsers; OCR é opcional por ser mais lento e sujeito a erros.
-- A aprovação refere uma lista persistida e fixa. O backend verifica novamente hashes, identidade e colisões antes de executar.
-- SQLite regista cada movimento antes e depois: permite identificar falhas parciais e tentar o restauro sem sobrescrever documentos.
-- Não existe uma transação única entre SQLite e o sistema de ficheiros. Recuperação explícita e estados intermédios tornam essa limitação visível.
-- Os testes usam documentos fictícios e pastas separadas. OCR e IA reais são verificações opcionais quando as dependências locais estão disponíveis.
-
-Use apenas a demonstração nas capturas públicas. Uma exportação de histórico real contém caminhos privados.
+Use only the demo when sharing screenshots. Exported history includes local paths. Do not close the launcher during moves or undo.

@@ -12,7 +12,7 @@ export async function request<T>(endpoint: string, body: unknown): Promise<T> {
     throw new Error(
       typeof data.detail === "string"
         ? data.detail
-        : "Pedido inválido. Verifique os dados e tente novamente.",
+        : "Invalid request. Check the details and try again.",
     );
   return data;
 }

@@ -81,7 +81,7 @@ def test_replaced_root_is_rejected(workspace):
     previous = workspace.with_name("previous")
     workspace.rename(previous)
     workspace.mkdir()
-    with pytest.raises(ValueError, match="substituída"):
+    with pytest.raises(ValueError, match="replaced"):
         operations.organize(record["id"])
     assert (previous / "first.txt").exists()
 
@@ -89,7 +89,7 @@ def test_replaced_root_is_rejected(workspace):
 def test_execution_lock_prevents_a_second_writer(workspace):
     record = operations.prepare(analyze(workspace))
     with operations.execution_lock():
-        with pytest.raises(ValueError, match="em curso"):
+        with pytest.raises(ValueError, match="is running"):
             operations.organize(record["id"])
     assert (workspace / "first.txt").exists()
 
@@ -102,7 +102,7 @@ def test_changed_original_blocks_entire_batch(workspace, stage):
     with pytest.raises(ValueError):
         operations.organize(record["id"]) if record else operations.prepare(plan)
     assert (workspace / "first.txt").exists()
-    assert not (workspace / "Financas").exists()
+    assert not (workspace / "Finance").exists()
 
 
 def test_new_collision_after_approval_is_not_overwritten(workspace):

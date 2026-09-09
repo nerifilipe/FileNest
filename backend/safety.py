@@ -21,18 +21,18 @@ def is_link(path: Path) -> bool:
 def local_root(raw: str) -> Path:
     # UNC/network shares are excluded: this release only reads local drives.
     if not raw.strip() or raw.startswith(("\\\\", "//")):
-        raise ValueError("Introduza o caminho absoluto de uma pasta local.")
+        raise ValueError("Enter the absolute path of a local folder.")
     path = Path(raw)
     if not path.is_absolute():
-        raise ValueError("O caminho deve ser absoluto, por exemplo C:\\Documentos.")
+        raise ValueError("The path must be absolute, for example C:\\Documents.")
     if any(is_link(part) for part in [path, *path.parents]):
-        raise ValueError("Escolha uma pasta real, sem ligações simbólicas ou junções.")
+        raise ValueError("Choose a real folder without symbolic links or junctions.")
     if not path.is_dir():
-        raise ValueError("A pasta não existe ou não está acessível.")
+        raise ValueError("The folder does not exist or is not accessible.")
     if os.name == "nt":
         import ctypes
         if ctypes.windll.kernel32.GetDriveTypeW(path.anchor) == 4:
-            raise ValueError("Unidades de rede não são suportadas. Escolha uma pasta local.")
+            raise ValueError("Network drives are not supported. Choose a local folder.")
     return path.resolve()
 
 
@@ -51,13 +51,13 @@ def validate_plan(plan: Plan) -> Plan:
             continue
         parts = item.proposed_folder.split("/")
         if not valid_component(item.proposed_name) or not all(valid_component(p) for p in parts):
-            item.issues.append("Nome ou subpasta inválidos. Use nomes simples e / entre subpastas.")
+            item.issues.append("Invalid name or folder. Use simple names and / between subfolders.")
             continue
         if Path(item.proposed_name).suffix.lower() != Path(item.current_path).suffix.lower():
-            item.issues.append("Mantenha a extensão original do ficheiro.")
+            item.issues.append("Keep the original file extension.")
         target = root.joinpath(*parts, item.proposed_name)
         if len(str(target)) > 240:
-            item.issues.append("O caminho proposto excede 240 caracteres.")
+            item.issues.append("The proposed path exceeds 240 characters.")
         cursor = root
         for part in [*parts, item.proposed_name]:
             # Case-insensitive lookup also catches Windows collisions on Linux.
@@ -65,29 +65,29 @@ def validate_plan(plan: Plan) -> Plan:
                 try:
                     entries = {p.name.casefold(): p for p in cursor.iterdir()}
                 except OSError:
-                    item.issues.append("Não foi possível verificar o destino.")
+                    item.issues.append("Could not check the destination.")
                     break
                 cursor = entries.get(part.casefold(), cursor / part)
             else:
                 cursor = cursor / part
             if is_link(cursor):
-                item.issues.append("O destino contém uma ligação simbólica ou junção.")
+                item.issues.append("The destination contains a symbolic link or junction.")
                 break
             if cursor.exists() and (part == item.proposed_name or not cursor.is_dir()):
-                item.issues.append("O destino já existe ou uma pasta está ocupada por um ficheiro.")
+                item.issues.append("The destination exists or a file occupies a required folder.")
                 break
         if not target.resolve().is_relative_to(root):
-            item.issues.append("O destino tem de ficar dentro da pasta selecionada.")
+            item.issues.append("The destination must stay inside the selected folder.")
         targets.setdefault(str(target).casefold(), []).append(item)
     for group in targets.values():
         if len(group) > 1:
             for item in group:
-                item.issues.append("Dois ou mais ficheiros têm o mesmo destino proposto.")
+                item.issues.append("Two or more files have the same proposed destination.")
     for target, group in targets.items():
         for other, other_group in targets.items():
             if other.startswith(target + os.sep):
                 for item in [*group, *other_group]:
-                    issue = "Um destino proposto ocupa uma subpasta necessária a outro ficheiro."
+                    issue = "A proposed destination occupies a subfolder required by another file."
                     if issue not in item.issues:
                         item.issues.append(issue)
     return plan

@@ -16,7 +16,7 @@ def test_occupied_port_is_not_reused_or_terminated():
             listener.listen()
         except OSError:
             pytest.skip("Port 8000 already occupied")
-        with pytest.raises(ValueError, match="ocupada"):
+        with pytest.raises(ValueError, match="busy"):
             launch.check_ports()
         assert listener.fileno() != -1
 

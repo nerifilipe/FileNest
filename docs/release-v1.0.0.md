@@ -1,40 +1,24 @@
-# FileNest v1.0.0 — Organização de documentos com processamento local
+# FileNest v1.0.0 — Local document organization
 
-[Release v1.0.0 no GitHub](https://github.com/nerifilipe/FileNest/releases/tag/v1.0.0).
+FileNest suggests filenames and folders from PDF and TXT content. Preview documents, edit suggestions, explicitly approve moves, and undo through an integrity-checked operation history.
 
-## Descrição
+## Features
 
-O FileNest analisa PDFs e ficheiros TXT e sugere nomes e subpastas a partir do conteúdo. O utilizador pode consultar o documento, editar as sugestões e aprovar uma lista de movimentos. O histórico permite desfazer, desde que os ficheiros não tenham sido alterados ou substituídos e os caminhos originais estejam disponíveis.
+- English interface, suggestions, and fictional samples.
+- Optional subfolder scanning, progress tracking, and cooperative cancellation.
+- Deterministic rules with no model or API key; optional local Qwen3 4B through Ollama.
+- Optional Tesseract OCR for English scanned documents.
+- PDF page and TXT previews alongside editable destinations.
+- Path containment, collision detection, and source integrity checks.
+- Approved organization and SQLite history with search, filters, pagination, JSON export, and undo.
+- Windows launcher, automated backend/browser tests, and GitHub Actions backend/build checks.
 
-O processamento é local. A demonstração funciona com regras determinísticas, sem modelos ou chave de API. A IA opcional usa Qwen3 4B através do Ollama; as sugestões de IA e as alternativas por regras estão identificadas na interface.
+## Try it
 
-### Funcionalidades
+Follow **Get started on Windows** in the README, then run `start.cmd` and choose **Explore sample files**. Create a demo copy before trying real moves. Distribution is source code: Python, Node.js, models, and OCR tools are installed separately. No hosted service or paid API is required.
 
-- Seleção de pasta e análise opcional de subpastas.
-- PDF com texto e TXT UTF-8; OCR opcional em português e inglês com Tesseract.
-- Progresso por documento e cancelamento após o documento em curso, conservando os resultados concluídos.
-- Pré-visualização de páginas PDF e TXT junto às sugestões editáveis.
-- Validação de nomes, contenção dos destinos na pasta selecionada e deteção de colisões.
-- Organização com aprovação explícita e revalidação dos originais antes de executar.
-- Histórico SQLite com pesquisa, filtros, paginação, exportação JSON e restauro.
-- Arranque simplificado no Windows com `start.cmd`, após instalação das dependências.
-- Demonstração com documentos fictícios e CI para testes backend e build frontend.
+## Limitations
 
-### Experimentar
+Analyses accept 100 documents with rules or 20 with AI, 10 MB per file, 2,000 directory entries, and 20 subfolder levels. Protected PDFs are rejected. AI and OCR need review. Cancellation waits for the current document; refreshing loses unsaved UI state. Batches are not atomic, and undo cannot recover edited or deleted content. Functional validation focuses on Windows.
 
-Consulte a secção **Get started on Windows** do README para instalar Python/Node e as dependências. Depois, execute `start.cmd` e clique em **Explorar exemplo**. Para experimentar movimentos reais, use **Criar cópia para organizar**; os exemplos versionados permanecem intactos.
-
-A distribuição é em código-fonte. Não inclui instalador, Python, Node.js, Tesseract ou modelos Ollama. Não existe serviço alojado nem é necessário configurar uma API paga.
-
-### Validação
-
-A instalação limpa do commit `b2c3952`, num caminho com espaços, passou com 97 testes backend e 11 de navegador, além do build e do arranque/encerramento dos servidores. Foram ignorados dois testes em cada conjunto: symlinks/OCR no backend e IA real/OCR no navegador, conforme o ambiente. Consulte `docs/installation-check.md` para o método e os limites da verificação. Estes números referem-se a essa verificação, não a uma garantia sobre todas as máquinas.
-
-### Limitações
-
-- Até 100 documentos por análise (20 com IA), 10 MB por documento, 2000 entradas e 20 níveis de subpastas.
-- PDFs protegidos são recusados. OCR e IA podem produzir erros e requerem revisão.
-- Cancelar aguarda o documento em curso; atualizar a página perde o acompanhamento da análise.
-- Não existe uma transação única para o lote. Falhas parciais ficam registadas para recuperação explícita.
-- Desfazer não recupera conteúdos editados ou apagados e não substitui backups.
-- Validação funcional centrada em Windows; não existe instalador nem suporte a outros formatos.
+See the README for current verification commands and `installation-check.md` for the historical clean-installation report and its limits.

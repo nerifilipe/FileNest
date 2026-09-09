@@ -13,7 +13,7 @@ class AnalysisJobs:
     def start(self, callback):
         with self.lock:
             if self.job and self.job["status"] == "running":
-                raise HTTPException(409, "Já existe uma análise em curso. Aguarde ou cancele-a.")
+                raise HTTPException(409, "An analysis is already running. Wait or cancel it.")
             job = {"id": uuid4().hex, "status": "running", "completed": 0, "total": None,
                    "current": "", "cancel_requested": False, "plan": None, "error": ""}
             self.job = job
@@ -31,7 +31,7 @@ class AnalysisJobs:
                     job.update(plan=plan.model_dump(), current="", status="cancelled" if job["cancel_requested"] else "completed")
             except Exception as error:
                 with self.lock:
-                    job.update(status="failed", current="", error=error.detail if isinstance(error, HTTPException) else "A análise falhou. Verifique a pasta e tente novamente.")
+                    job.update(status="failed", current="", error=error.detail if isinstance(error, HTTPException) else "Analysis failed. Check the folder and try again.")
 
         Thread(target=work, daemon=True, name="filenest-analysis").start()
         return initial
@@ -39,7 +39,7 @@ class AnalysisJobs:
     def snapshot(self, job_id, cancel=False):
         with self.lock:
             if not self.job or self.job["id"] != job_id:
-                raise HTTPException(404, "Esta análise já não está disponível. Volte a analisar a pasta.")
+                raise HTTPException(404, "This analysis is no longer available. Analyze the folder again.")
             if cancel and self.job["status"] == "running":
                 self.job["cancel_requested"] = True
             return dict(self.job)

@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def requirements():
     if sys.version_info < (3, 11):
-        raise ValueError("Instale Python 3.11 ou superior e recrie .venv.")
+        raise ValueError("Install Python 3.11 or later and recreate .venv.")
     missing = []
     for line in (ROOT / "backend/requirements-lock.txt").read_text(encoding="utf-8").splitlines():
         if not line.strip() or line.startswith("#"):
@@ -30,16 +30,16 @@ def requirements():
         if installed != expected:
             missing.append(name)
     if missing:
-        raise ValueError("Atualize as dependências Python: " + ", ".join(missing) + "\n.\\.venv\\Scripts\\python -m pip install -r backend/requirements-lock.txt")
+        raise ValueError("Update Python dependencies: " + ", ".join(missing) + "\n.\\.venv\\Scripts\\python -m pip install -r backend/requirements-lock.txt")
     node = shutil.which("node")
     if not node or not shutil.which("npm.cmd"):
-        raise ValueError("Instale Node.js 22.12 ou superior (com npm) e abra um terminal novo.")
+        raise ValueError("Install Node.js 22.12 or later (with npm) and open a new terminal.")
     version = subprocess.check_output([node, "--version"], text=True, timeout=10, creationflags=subprocess.CREATE_NO_WINDOW).strip()
     if tuple(map(int, version.lstrip("v").split(".")[:2])) < (22, 12):
-        raise ValueError("Atualize Node.js para 22.12 ou superior.")
+        raise ValueError("Update Node.js to 22.12 or later.")
     vite = ROOT / "frontend/node_modules/vite/bin/vite.js"
     if not vite.is_file() or not (ROOT / "frontend/node_modules/react/package.json").is_file():
-        raise ValueError("Faltam dependências da interface. Execute na raiz:\ncd frontend\nnpm ci")
+        raise ValueError("Frontend dependencies are missing. Run from the project root:\ncd frontend\nnpm ci")
     return node, vite
 
 
@@ -50,7 +50,7 @@ def check_ports():
             try:
                 listener.bind(("127.0.0.1", port))
             except OSError:
-                raise ValueError(f"A porta {port} está ocupada. Feche a instância anterior ou o programa que a utiliza e tente novamente. Nenhum processo foi terminado.") from None
+                raise ValueError(f"Port {port} is busy. Close the previous instance or the program using it and try again. No processes were stopped.") from None
 
 
 class ChildJob:
@@ -77,13 +77,13 @@ class ChildJob:
         limits.basic.flags = 0x2000
         if not self.handle or not self.kernel.SetInformationJobObject(self.handle, 9, ctypes.byref(limits), ctypes.sizeof(limits)):
             self.close()
-            raise OSError("Não foi possível preparar os servidores locais.")
+            raise OSError("Could not prepare the local servers.")
 
     def add(self, process):
         if not self.kernel.AssignProcessToJobObject(self.handle, int(process._handle)):
             process.kill()
             process.wait()
-            raise OSError("Não foi possível supervisionar o servidor local.")
+            raise OSError("Could not supervise the local server.")
 
     def close(self):
         if self.handle:
@@ -97,7 +97,7 @@ def wait_ready(processes, timeout=45):
     deadline = time.monotonic() + timeout
     while pending and time.monotonic() < deadline:
         if any(process.poll() is not None for process in processes):
-            raise ValueError("Um servidor terminou durante o arranque. Consulte os logs em .filenest/logs.")
+            raise ValueError("A server stopped during startup. Check the logs in .filenest/logs.")
         for url in list(pending):
             try:
                 with opener.open(url, timeout=0.5) as response:
@@ -107,7 +107,7 @@ def wait_ready(processes, timeout=45):
                 pass
         time.sleep(0.2)
     if pending:
-        raise ValueError("O arranque excedeu 45 segundos. Consulte os logs em .filenest/logs.")
+        raise ValueError("Startup exceeded 45 seconds. Check the logs in .filenest/logs.")
 
 
 def launch(node, vite, smoke=False):
@@ -125,18 +125,18 @@ def launch(node, vite, smoke=False):
             process = subprocess.Popen(command, cwd=directory, stdin=subprocess.DEVNULL, stdout=stream, stderr=subprocess.STDOUT, creationflags=subprocess.CREATE_NO_WINDOW)
             processes.append(process)
             job.add(process)
-        print("A iniciar o FileNest…", flush=True)
+        print("Starting FileNest…", flush=True)
         wait_ready(processes)
-        print("FileNest disponível em http://127.0.0.1:5173", flush=True)
+        print("FileNest is available at http://127.0.0.1:5173", flush=True)
         if smoke:
             return
         webbrowser.open("http://127.0.0.1:5173")
-        print("Mantenha esta janela aberta. Prima Q ou Ctrl+C para parar os dois servidores.")
-        print("Termine qualquer organização/restauro antes de sair. Logs: .filenest/logs")
+        print("Keep this window open. Press Q or Ctrl+C to stop both servers.")
+        print("Finish any organization or undo operation before exiting. Logs: .filenest/logs")
         import msvcrt
         while True:
             if any(process.poll() is not None for process in processes):
-                raise ValueError("Um servidor terminou. Consulte .filenest/logs antes de voltar a iniciar.")
+                raise ValueError("A server stopped. Check .filenest/logs before restarting.")
             if msvcrt.kbhit() and msvcrt.getwch().lower() == "q":
                 break
             time.sleep(0.2)
@@ -146,28 +146,28 @@ def launch(node, vite, smoke=False):
             process.wait(timeout=10)
         for stream in streams:
             stream.close()
-        print("Servidores iniciados por este script terminados.")
+        print("Servers started by this script have stopped.")
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--check", action="store_true", help="Verificar requisitos sem iniciar servidores")
-    parser.add_argument("--smoke-test", action="store_true", help="Iniciar, verificar e terminar sem abrir o navegador")
+    parser.add_argument("--check", action="store_true", help="Check requirements without starting servers")
+    parser.add_argument("--smoke-test", action="store_true", help="Start, check and stop without opening the browser")
     args = parser.parse_args()
     try:
         if os.name != "nt":
-            raise ValueError("Este arranque simplificado destina-se ao Windows. Consulte o README para execução manual.")
+            raise ValueError("This launcher supports Windows. See the README for manual startup.")
         node, vite = requirements()
         if args.check:
             check_ports()
-            print("Requisitos e portas disponíveis. Pronto para iniciar.")
+            print("Requirements and ports are available. Ready to start.")
         else:
             launch(node, vite, args.smoke_test)
         return 0
     except KeyboardInterrupt:
         return 0
     except (ValueError, OSError, subprocess.SubprocessError) as error:
-        print(f"Não foi possível iniciar o FileNest: {error}", file=sys.stderr)
+        print(f"Could not start FileNest: {error}", file=sys.stderr)
         return 1
 
 

@@ -30,10 +30,10 @@ DEMO_ROOT = Path(__file__).resolve().parents[1] / "examples" / "demo"
 async def local_client(request: Request, call_next):
     from fastapi.responses import JSONResponse
     if request.method == "POST" and request.headers.get("x-filenest-client") != "local-preview":
-        return JSONResponse(status_code=403, content={"detail": "Pedido não autorizado. Abra a interface local do FileNest."})
+        return JSONResponse(status_code=403, content={"detail": "Unauthorized request. Open the local FileNest interface."})
     origin = request.headers.get("origin")
     if origin and origin not in {"http://127.0.0.1:5173", "http://localhost:5173", os.environ.get("FILENEST_FRONTEND_ORIGIN")}:
-        return JSONResponse(status_code=403, content={"detail": "Origem não autorizada."})
+        return JSONResponse(status_code=403, content={"detail": "Unauthorized origin."})
     return await call_next(request)
 
 
@@ -54,11 +54,11 @@ preview_lock = Lock()
 def preview_document(request: PreviewRequest):
     from fastapi.responses import JSONResponse
     if not preview_lock.acquire(blocking=False):
-        raise HTTPException(409, "Já existe uma pré-visualização em curso. Tente novamente.")
+        raise HTTPException(409, "A preview is already loading. Try again.")
     try:
         return JSONResponse(preview.read(request.token, request.page), headers={"Cache-Control": "no-store"})
     except (ValueError, OSError) as error:
-        raise HTTPException(400, str(error) if isinstance(error, ValueError) else "Não foi possível ler o documento. Volte a analisar.") from None
+        raise HTTPException(400, str(error) if isinstance(error, ValueError) else "Could not read the document. Analyze it again.") from None
     finally:
         preview_lock.release()
 
@@ -84,9 +84,9 @@ def analyze(request: AnalyzeRequest, progress=None):
     try:
         root = local_root(str(DEMO_ROOT) if request.demo else request.path)
     except (ValueError, OSError):
-        raise HTTPException(400, "Escolha uma pasta local existente com caminho absoluto, sem ligações ou unidades de rede.") from None
+        raise HTTPException(400, "Choose an existing local folder with an absolute path, without links or network drives.") from None
     if not analysis_lock.acquire(blocking=False):
-        raise HTTPException(409, "Já existe uma análise em curso. Aguarde e tente novamente.")
+        raise HTTPException(409, "An analysis is already running. Wait and try again.")
     ai = None
     try:
         items = []
@@ -101,10 +101,10 @@ def analyze(request: AnalyzeRequest, progress=None):
         except ValueError as error:
             raise HTTPException(400, str(error)) from None
         if progress and progress(total=len(paths)):
-            return Plan(root=str(root), provider=request.provider, items=[], warnings=["Análise cancelada antes de processar documentos."])
+            return Plan(root=str(root), provider=request.provider, items=[], warnings=["Analysis cancelled before processing documents."])
         if request.provider == "ollama":
             if len(paths) > MAX_AI_FILES:
-                raise HTTPException(400, "A IA local está limitada a 20 documentos por análise. Escolha uma pasta menor ou use regras locais.")
+                raise HTTPException(400, "Local AI is limited to 20 documents per analysis. Choose a smaller folder or use local rules.")
             if paths:
                 ai = OllamaProvider()
                 try:
@@ -128,40 +128,40 @@ def analyze(request: AnalyzeRequest, progress=None):
                 note = ""
                 if ai and not fallback_reason:
                     if time.monotonic() - started >= 180:
-                        fallback_reason = "Foi atingido o orçamento de tempo da IA para esta análise."
+                        fallback_reason = "The AI time budget for this analysis was reached."
                     else:
                         try:
                             suggestion = ai.suggest(extracted, path.suffix)
                             source = "ollama"
                             if len(extracted) > MAX_AI_TEXT:
-                                note = "A IA analisou apenas os primeiros 6000 caracteres extraídos."
+                                note = "AI analyzed only the first 6,000 extracted characters."
                         except ProviderError as error:
                             fallback_reason = str(error)
                 if source == "demo-rules":
                     suggestion = rules.suggest(extracted, path.suffix)
                     if ai:
-                        note = "Alternativa por regras locais: " + fallback_reason
+                        note = "Local rules fallback: " + fallback_reason
                 if operations.fingerprint(operations.safe_path(root, relative)) != identity:
-                    raise ExtractionError("unreadable", "O ficheiro mudou durante a análise. Tente novamente.")
+                    raise ExtractionError("unreadable", "The file changed during analysis. Try again.")
                 item = FileItem(id=relative, current_path=relative, size=size, fingerprint=identity,
                                 suggestion_source=source, provider_note=note, extraction_method=extraction["method"],
                                 extraction_notes=extraction["notes"], **suggestion.model_dump())
             except (ValueError, OSError) as error:
-                item = FileItem(id=relative, current_path=relative, size=0, category="Por analisar",
+                item = FileItem(id=relative, current_path=relative, size=0, category="Not analyzed",
                                 proposed_name=path.name, proposed_folder="", status=getattr(error, "status", "unreadable"),
-                                included=False, reason=str(error) if isinstance(error, ExtractionError) else "Não foi possível aceder ao ficheiro.")
+                                included=False, reason=str(error) if isinstance(error, ExtractionError) else "Could not access the file.")
             if identity and item.status in {"ready", "ocr_required", "ocr_no_text", "empty"}:
                 item.preview_token = preview.register(root, relative, identity)
             items.append(item)
             if progress:
                 progress(completed=len(items))
         if progress and progress(current=""):
-            warnings.append(f"Análise cancelada: {len(items)} de {len(paths)} documentos concluídos. O plano contém apenas esses resultados.")
+            warnings.append(f"Analysis cancelled: {len(items)} of {len(paths)} documents completed. The plan contains only those results.")
         if fallback_reason:
-            warnings.append("A IA foi interrompida; as sugestões alternativas estão identificadas como regras locais.")
+            warnings.append("AI processing stopped; fallback suggestions are labeled as local rules.")
         return validate_plan(Plan(root=str(root), provider=request.provider, items=items, warnings=warnings))
     except OSError:
-        raise HTTPException(400, "Não foi possível ler a pasta. Verifique as permissões.") from None
+        raise HTTPException(400, "Could not read the folder. Check permissions.") from None
     finally:
         if ai:
             ai.close()
@@ -173,7 +173,7 @@ def ai_status():
     provider = OllamaProvider()
     try:
         provider.check()
-        return {"available": True, "model": MODEL, "message": "Ollama e modelo local disponíveis."}
+        return {"available": True, "model": MODEL, "message": "Ollama and local model are available."}
     except ProviderError as error:
         return {"available": False, "model": MODEL, "message": str(error)}
     finally:
@@ -188,14 +188,14 @@ def ocr_status():
 @app.post("/api/folders/pick")
 def pick_folder():
     if not picker_lock.acquire(blocking=False):
-        raise HTTPException(409, "Já existe uma janela de seleção aberta.")
+        raise HTTPException(409, "A folder selection dialog is already open.")
     try:
         result = run_worker("backend.folder_picker", {}, timeout=180, memory_mb=256)
         if result.get("path"):
             result["path"] = str(local_root(result["path"]))
         return result
     except (WorkerError, OSError, ValueError):
-        raise HTTPException(400, "Não foi possível escolher a pasta ou o tempo terminou. Pode introduzir o caminho manualmente.") from None
+        raise HTTPException(400, "The folder dialog failed or timed out. You can enter the path manually.") from None
     finally:
         picker_lock.release()
 
@@ -205,7 +205,7 @@ def validate(plan: Plan):
     try:
         return validate_plan(plan)
     except (ValueError, OSError):
-        raise HTTPException(400, "A pasta deixou de estar acessível. Volte a analisar.") from None
+        raise HTTPException(400, "The folder is no longer accessible. Analyze it again.") from None
 
 
 class Approval(BaseModel):
@@ -218,7 +218,7 @@ def operation_response(callback, *args, **kwargs):
     except ValueError as error:
         raise HTTPException(409, str(error)) from None
     except (OSError, sqlite3.Error):
-        raise HTTPException(409, "Não foi possível aceder aos ficheiros ou ao histórico local.") from None
+        raise HTTPException(409, "Could not access the files or local history.") from None
 
 
 @app.post("/api/operations/prepare")
@@ -247,14 +247,14 @@ def export_operations(query: HistoryQuery):
 @app.post("/api/operations/{operation_id}/apply")
 def apply_operation(operation_id: str, approval: Approval):
     if not approval.approved:
-        raise HTTPException(400, "É necessária aprovação explícita para organizar.")
+        raise HTTPException(400, "Explicit approval is required to organize files.")
     return operation_response(operations.organize, operation_id)
 
 
 @app.post("/api/operations/{operation_id}/undo")
 def undo_operation(operation_id: str, approval: Approval):
     if not approval.approved:
-        raise HTTPException(400, "Confirme que pretende restaurar os caminhos originais.")
+        raise HTTPException(400, "Confirm that you want to restore the original paths.")
     return operation_response(operations.undo, operation_id)
 
 
@@ -268,7 +268,7 @@ def demo_copy():
             pass
         parent = operations.DATA_DIR / "demos"
         if is_link(parent):
-            raise ValueError("A pasta de demonstrações não pode ser uma ligação.")
+            raise ValueError("The demo folder cannot be a link.")
         root = parent / uuid4().hex
         # Preserve links as links so this helper never reads their external targets.
         # The analyzer will ignore them, just as in a user-selected folder.

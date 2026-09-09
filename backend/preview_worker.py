@@ -13,24 +13,24 @@ def render(payload):
     with path.open("rb") as stream:
         data = stream.read(MAX_BYTES + 1)
     if len(data) > MAX_BYTES:
-        raise ValueError("O ficheiro excede 10 MB.")
+        raise ValueError("The file exceeds 10 MB.")
     if path.suffix.lower() == ".txt":
         text = data.decode("utf-8-sig")
         return {"kind": "text", "text": text[:MAX_TEXT], "truncated": len(text) > MAX_TEXT, "pages": 1, "page": 1}
     if path.suffix.lower() != ".pdf":
-        raise ValueError("Formato não suportado.")
+        raise ValueError("Unsupported format.")
     import pypdfium2 as pdfium
     with pdfium.PdfDocument(data) as pdf:
         count = len(pdf)
         number = payload["page"]
         if count > MAX_PAGES or not 1 <= number <= count:
-            raise ValueError("Página inválida ou PDF com mais de 100 páginas.")
+            raise ValueError("Invalid page or PDF with more than 100 pages.")
         page = pdf[number - 1]
         bitmap = None
         try:
             width, height = page.get_size()
             if width <= 0 or height <= 0:
-                raise ValueError("Dimensões de página inválidas.")
+                raise ValueError("Invalid page dimensions.")
             bitmap = page.render(scale=min(1.5, 1400 / max(width, height)))
             image = bitmap.to_pil()
             try:
@@ -50,5 +50,5 @@ if __name__ == "__main__":
     try:
         result = render(payload)
     except Exception:
-        result = {"error": "Não foi possível pré-visualizar este documento. Pode estar protegido, ilegível ou exceder os limites."}
+        result = {"error": "Could not preview this document. It may be protected, unreadable, or exceed the limits."}
     print(json.dumps(result))

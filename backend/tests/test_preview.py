@@ -56,4 +56,4 @@ def test_preview_expiration_and_nested_link_revalidation(tmp_path, monkeypatch):
     monkeypatch.setattr(operations, "is_link", lambda p: p == directory or original(p))
     assert client.post("/api/preview", headers=HEADERS, json={"token": token}).status_code == 400
     monkeypatch.setattr(preview.time, "monotonic", lambda: 10**15)
-    assert "expirada" in client.post("/api/preview", headers=HEADERS, json={"token": token}).json()["detail"]
+    assert "expired" in client.post("/api/preview", headers=HEADERS, json={"token": token}).json()["detail"]

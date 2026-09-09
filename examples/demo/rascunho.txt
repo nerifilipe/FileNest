@@ -1,5 +1,0 @@
-Reserva de viagem
-2026-09-04
-Hotel fictício: Casa das Nuvens.
-Viagem de demonstração para a cidade imaginária de Vale Sereno.
-Todos os dados deste documento são fictícios.

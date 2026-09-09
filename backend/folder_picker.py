@@ -1,4 +1,4 @@
-"""Native folder dialog, spawned only after the user clicks Escolher pasta."""
+"""Native folder dialog, spawned only after the user clicks Choose folder."""
 import json
 from .processes import read_payload
 
@@ -11,7 +11,7 @@ def main():
     root.withdraw()
     root.attributes("-topmost", True)
     try:
-        selected = filedialog.askdirectory(parent=root, title="FileNest — escolher pasta", mustexist=True)
+        selected = filedialog.askdirectory(parent=root, title="FileNest — choose folder", mustexist=True)
         print(json.dumps({"path": selected or None}))
     finally:
         root.destroy()

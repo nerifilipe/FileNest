@@ -6,18 +6,16 @@ test("copy demo, cancel approval, organize, reload history and undo", async ({
   page,
 }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Explorar exemplo" }).click();
-  await page
-    .getByRole("button", { name: "Criar cópia para organizar" })
-    .click();
+  await page.getByRole("button", { name: "Explore sample files" }).click();
+  await page.getByRole("button", { name: "Create a demo copy" }).click();
   await expect(
-    page.getByRole("button", { name: "Preparar organização" }),
+    page.getByRole("button", { name: "Prepare organization" }),
   ).toBeEnabled();
-  const root = await page.getByLabel("Caminho da pasta local").inputValue();
+  const root = await page.getByLabel("Local folder path").inputValue();
   const original = await readFile(join(root, "scan_001.pdf"));
-  await page.getByRole("button", { name: "Preparar organização" }).click();
+  await page.getByRole("button", { name: "Prepare organization" }).click();
   const approval = page.getByRole("region", {
-    name: "Confirmar organização",
+    name: "Confirm organization",
     exact: true,
   });
   await expect(approval).toBeVisible();
@@ -31,36 +29,36 @@ test("copy demo, cancel approval, organize, reload history and undo", async ({
   await approval.screenshot({ path: "../tmp/approval-mobile.png" });
   await page.setViewportSize({ width: 1280, height: 900 });
   await expect(
-    approval.getByRole("button", { name: "Confirmar e organizar" }),
+    approval.getByRole("button", { name: "Confirm and organize" }),
   ).toBeDisabled();
-  await approval.getByRole("button", { name: "Cancelar", exact: true }).click();
+  await approval.getByRole("button", { name: "Cancel", exact: true }).click();
   expect(await readFile(join(root, "scan_001.pdf"))).toEqual(original);
-  await page.getByRole("button", { name: "Preparar organização" }).click();
+  await page.getByRole("button", { name: "Prepare organization" }).click();
   await approval.getByRole("checkbox").check();
-  await approval.getByRole("button", { name: "Confirmar e organizar" }).click();
+  await approval.getByRole("button", { name: "Confirm and organize" }).click();
   await expect(
-    page.getByText("Organização concluída.", { exact: false }),
+    page.getByText("Organization complete.", { exact: false }),
   ).toBeVisible();
   expect(
-    await readFile(join(root, "Financas", "2026-09-01_fatura.pdf")),
+    await readFile(join(root, "Finance", "2026-09-01_invoice.pdf")),
   ).toEqual(original);
   await expect(access(join(root, "scan_001.pdf"))).rejects.toThrow();
   await page.reload();
   await expect(
-    page.getByRole("button", { name: "Desfazer", exact: true }),
+    page.getByRole("button", { name: "Undo", exact: true }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Desfazer", exact: true }).click();
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
   const restore = page.getByRole("region", {
-    name: "Confirmar restauro",
+    name: "Confirm undo",
     exact: true,
   });
   await expect(
-    restore.getByRole("button", { name: "Confirmar e desfazer" }),
+    restore.getByRole("button", { name: "Confirm and undo" }),
   ).toBeDisabled();
   await restore.getByRole("checkbox").check();
-  await restore.getByRole("button", { name: "Confirmar e desfazer" }).click();
+  await restore.getByRole("button", { name: "Confirm and undo" }).click();
   await expect(
-    page.getByText("Restauro concluído.", { exact: false }),
+    page.getByText("Undo complete.", { exact: false }),
   ).toBeVisible();
   expect(await readFile(join(root, "scan_001.pdf"))).toEqual(original);
 });

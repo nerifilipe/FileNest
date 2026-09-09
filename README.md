@@ -2,7 +2,7 @@
 
 **A place for every file.** A local document organizer that suggests file names and folders based on document content. Review the suggestions, approve the changes, and undo them through the operation history.
 
-Built as a Computer Engineering portfolio project with **Python, FastAPI, React, TypeScript, and SQLite**. Optional AI runs locally through Ollama. The interface is in **European Portuguese**.
+Built as a Computer Engineering portfolio project with **Python, FastAPI, React, TypeScript, and SQLite**. Optional AI runs locally through Ollama. The interface, sample documents, and generated suggestions are in **English**.
 
 ![FileNest showing fictional sample documents](docs/demo-desktop.png)
 
@@ -12,7 +12,7 @@ Built as a Computer Engineering portfolio project with **Python, FastAPI, React,
 
 - Analyze PDF and UTF-8 TXT files, with optional subfolder scanning.
 - Generate suggestions using deterministic rules or local AI with Qwen3 4B.
-- Read scanned PDFs with optional Tesseract OCR in Portuguese and English.
+- Read scanned PDFs with optional Tesseract OCR in English.
 - Preview documents alongside editable names and destination folders.
 - Track analysis progress and cancel while keeping completed results.
 - Validate paths, detect collisions, and exclude files before approval.
@@ -92,7 +92,7 @@ From the repository root:
 powershell -ExecutionPolicy Bypass -File scripts/setup_ocr.ps1
 ```
 
-The script installs Tesseract through winget if needed and downloads Portuguese and English language data. Enable local OCR in the app and analyze again. OCR reads pages without extractable text and does not rewrite the original PDF. Recognition quality depends on the document.
+The script installs Tesseract through winget if needed and downloads English language data. Enable local OCR in the app and analyze again. OCR reads pages without extractable text and does not rewrite the original PDF. Recognition quality depends on the document.
 
 ## Design and limitations
 
@@ -133,7 +133,7 @@ Test screenshots are saved under `frontend/test-results/`. To deliberately refre
 
 [GitHub Actions](.github/workflows/ci.yml) runs backend tests on Windows and the TypeScript/frontend build on every push and pull request. Browser tests run locally; CI does not install models or publish the application.
 
-See the [clean installation report](docs/installation-check.md) for recorded results and the [architecture notes](docs/architecture.md) for implementation details. These supporting documents are currently in Portuguese.
+See the [clean installation report](docs/installation-check.md) for recorded results and the [architecture notes](docs/architecture.md) for implementation details.
 
 ## Roadmap
 

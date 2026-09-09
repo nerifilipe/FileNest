@@ -39,7 +39,7 @@ def windows_job(process, memory_mb):
     if not job or not kernel.SetInformationJobObject(job, 9, ctypes.byref(limits), ctypes.sizeof(limits)) or not kernel.AssignProcessToJobObject(job, int(process._handle)):
         if job:
             kernel.CloseHandle(job)
-        raise WorkerError("isolation_unavailable", "Não foi possível isolar a extração. Reinicie a aplicação fora de ambientes restritos.")
+        raise WorkerError("isolation_unavailable", "Could not isolate extraction. Restart the app outside restricted environments.")
     return lambda: kernel.CloseHandle(job)
 
 
@@ -59,15 +59,15 @@ def run_worker(module: str, payload: dict, timeout: float = 30, memory_mb: int =
         try:
             output, _ = process.communicate(json.dumps(payload).encode(), timeout=timeout)
         except subprocess.TimeoutExpired:
-            raise WorkerError("timeout", "A extração excedeu o tempo permitido. Experimente um documento mais pequeno.") from None
+            raise WorkerError("timeout", "Extraction timed out. Try a smaller document.") from None
         if process.returncode != 0 or len(output) > max_output_bytes:
-            raise WorkerError("resource_limit", "O processo de extração terminou inesperadamente ou excedeu os recursos disponíveis.")
+            raise WorkerError("resource_limit", "The extraction process stopped unexpectedly or exceeded available resources.")
         try:
             result = json.loads(output)
             if not isinstance(result, dict):
                 raise ValueError()
         except (ValueError, UnicodeError):
-            raise WorkerError("unreadable", "O processo de extração devolveu uma resposta inválida.") from None
+            raise WorkerError("unreadable", "The extraction process returned an invalid response.") from None
         return result
     finally:
         if close_job:

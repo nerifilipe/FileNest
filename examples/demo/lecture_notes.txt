@@ -1,0 +1,5 @@
+Database lecture notes
+2026-09-02
+Course: Information Systems.
+Review normalization, transactions and indexes for the exam.
+This is a fictional sample with no personal data.

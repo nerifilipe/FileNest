@@ -9,8 +9,8 @@ from backend.main import app
 from backend.ollama_provider import MAX_AI_TEXT, MODEL, OllamaProvider, ProviderError
 
 HEADERS = {"X-FileNest-Client": "local-preview"}
-GOOD = {"category": "Finanças", "proposed_name": "fatura-papelaria.txt",
-        "proposed_folder": "Financas", "reason": "Documento relativo à compra de material de papelaria."}
+GOOD = {"category": "Finance", "proposed_name": "fatura-papelaria.txt",
+        "proposed_folder": "Finance", "reason": "Documento relativo à compra de material de papelaria."}
 
 
 def response(data=None):
@@ -44,7 +44,7 @@ def test_request_is_bounded_local_and_separates_untrusted_document(monkeypatch):
     {"proposed_name": "../secret.txt"}, {"proposed_folder": "../outside"},
     {"proposed_name": "CON.txt"}, {"proposed_name": "file.exe"},
     {"category": "invented"}, {"reason": ""}, {"unexpected": "tool call"},
-    {"proposed_folder": "Trabalho"},
+    {"proposed_folder": "Work"},
 ])
 def test_invalid_model_suggestions_are_rejected(patch):
     provider = OllamaProvider(transport=httpx.MockTransport(lambda _: response({**GOOD, **patch})))
@@ -114,7 +114,7 @@ def test_api_records_provenance_and_uses_explicit_fallback(tmp_path, monkeypatch
     data = result.json()
     assert data["provider"] == "ollama"
     assert [i["suggestion_source"] for i in data["items"]] == ["ollama", "demo-rules", "demo-rules"]
-    assert "Alternativa por regras" in data["items"][1]["provider_note"]
+    assert "Local rules fallback" in data["items"][1]["provider_note"]
     assert data["warnings"]
     assert len(calls) == 2  # Circuit breaker prevents a timeout for every remaining file.
 

@@ -18,20 +18,20 @@ type Operation = {
   error: string;
 };
 const statuses: Record<string, string> = {
-  prepared: "Preparado · não executado",
-  applying: "Execução interrompida ou em curso",
-  completed: "Organizado",
-  partial: "Organização parcial",
-  undoing: "Restauro interrompido ou em curso",
-  undo_partial: "Restauro com conflitos",
-  undone: "Desfeito",
+  prepared: "Prepared · not executed",
+  applying: "Execution interrupted or in progress",
+  completed: "Organized",
+  partial: "Partially organized",
+  undoing: "Undo interrupted or in progress",
+  undo_partial: "Undo has conflicts",
+  undone: "Undone",
 };
 const actionStates: Record<string, string> = {
-  pending: "Não movido",
-  moving: "Verificar no disco",
-  moved: "Movido",
-  restoring: "Restauro por verificar",
-  undone: "No caminho original",
+  pending: "Not moved",
+  moving: "Check on disk",
+  moved: "Moved",
+  restoring: "Check restoration",
+  undone: "At original path",
 };
 
 type Props = {
@@ -113,7 +113,7 @@ export default function OperationsPanel({
       );
       const link = document.createElement("a");
       link.href = url;
-      link.download = "filenest-historico.json";
+      link.download = "filenest-history.json";
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -125,7 +125,7 @@ export default function OperationsPanel({
   useEffect(() => {
     void refresh().catch(() =>
       setError(
-        "Não foi possível carregar o histórico. Confirme que reiniciou o backend atualizado.",
+        "Could not load history. Make sure the updated backend is running.",
       ),
     );
   }, []);
@@ -167,10 +167,10 @@ export default function OperationsPanel({
       );
       setMessage(
         result.status === "completed"
-          ? "Organização concluída. Pode desfazer no histórico abaixo."
+          ? "Organization complete. You can undo it in the history below."
           : result.status === "undone"
-            ? "Restauro concluído. Os ficheiros voltaram aos caminhos originais."
-            : "A operação requer atenção. Consulte os detalhes no histórico.",
+            ? "Undo complete. Files are back at their original paths."
+            : "This operation needs attention. Check the details in history.",
       );
       setConfirmation(null);
       setApproved(false);
@@ -181,7 +181,7 @@ export default function OperationsPanel({
       await refresh(1, "", "all");
     } catch (e) {
       setError(
-        `${(e as Error).message} Se perdeu a ligação, atualize o histórico antes de continuar.`,
+        `${(e as Error).message} If the connection was lost, refresh history before continuing.`,
       );
       await refresh().catch(() => {});
     } finally {
@@ -198,19 +198,19 @@ export default function OperationsPanel({
     );
 
   return (
-    <section className="operations-panel" aria-label="Organização e histórico">
+    <section className="operations-panel" aria-label="Organization and history">
       {plan && (
         <div className="plan-footer">
           <div>
             <strong>
               {isDemo
-                ? "Experimente o fluxo completo numa cópia"
-                : "Pronto para pôr os ficheiros no lugar?"}
+                ? "Try the complete flow on a copy"
+                : "Ready to put everything in place?"}
             </strong>
             <p>
               {isDemo
-                ? "Os exemplos publicados permanecem intactos. Criamos uma pasta local separada."
-                : "Prepare a revisão final. Só moveremos os ficheiros após a sua confirmação explícita."}
+                ? "The original samples stay untouched. We will create a separate local folder."
+                : "Review the final plan. Files move only after your explicit approval."}
             </p>
           </div>
           <button
@@ -223,7 +223,7 @@ export default function OperationsPanel({
             ) : (
               <ShieldCheck size={16} />
             )}
-            {isDemo ? "Criar cópia para organizar" : "Preparar organização"}
+            {isDemo ? "Create a demo copy" : "Prepare organization"}
           </button>
         </div>
       )}
@@ -233,19 +233,19 @@ export default function OperationsPanel({
           tabIndex={-1}
           className="approval-panel"
           aria-label={
-            confirmation.undo ? "Confirmar restauro" : "Confirmar organização"
+            confirmation.undo ? "Confirm undo" : "Confirm organization"
           }
         >
           <h2>
             {confirmation.undo
-              ? "Restaurar os caminhos originais"
-              : "Revisão final antes de organizar"}
+              ? "Restore original paths"
+              : "Final review before organizing"}
           </h2>
           <p className="root-path">{confirmation.operation.root}</p>
           <p>
             {confirmation.undo
-              ? "O restauro será bloqueado para ficheiros alterados ou caminhos ocupados. As pastas vazias serão mantidas."
-              : `Vai mover ${confirmation.operation.actions.length} ficheiro(s). O conteúdo será preservado e os caminhos mudarão conforme esta lista.`}
+              ? "Undo is blocked for changed files or occupied paths. Empty folders are kept."
+              : `You will move ${confirmation.operation.actions.length} files. Contents stay the same; paths change as listed below.`}
           </p>
           <ul className="action-list">
             {confirmation.operation.actions.map((action) => (
@@ -268,8 +268,8 @@ export default function OperationsPanel({
               onChange={(e) => setApproved(e.target.checked)}
             />
             {confirmation.undo
-              ? "Confirmo o restauro dos ficheiros desta operação."
-              : "Revi estes caminhos e autorizo mover estes ficheiros."}
+              ? "I confirm undoing this operation."
+              : "I reviewed these paths and approve moving these files."}
           </label>
           <div className="operation-buttons">
             <button
@@ -280,7 +280,7 @@ export default function OperationsPanel({
                 setApproved(false);
               }}
             >
-              Cancelar
+              Cancel
             </button>
             <button
               className="primary"
@@ -288,9 +288,7 @@ export default function OperationsPanel({
               onClick={() => void execute()}
             >
               {pending && <LoaderCircle size={16} className="spin" />}
-              {confirmation.undo
-                ? "Confirmar e desfazer"
-                : "Confirmar e organizar"}
+              {confirmation.undo ? "Confirm and undo" : "Confirm and organize"}
             </button>
           </div>
         </section>
@@ -308,8 +306,8 @@ export default function OperationsPanel({
       )}
       <div className="results-heading history-heading">
         <div>
-          <h2>Histórico local</h2>
-          <p>{total} operação(ões) encontradas · guardadas neste computador.</p>
+          <h2>Local history</h2>
+          <p>{total} operations found · stored on this computer.</p>
         </div>
         <button
           className="text-button"
@@ -317,10 +315,10 @@ export default function OperationsPanel({
           onClick={() =>
             void refresh()
               .then(() => setError(""))
-              .catch(() => setError("Não foi possível atualizar o histórico."))
+              .catch(() => setError("Could not refresh history."))
           }
         >
-          <RotateCcw size={14} /> Atualizar histórico
+          <RotateCcw size={14} /> Refresh history
         </button>
       </div>
       <form
@@ -329,33 +327,33 @@ export default function OperationsPanel({
           e.preventDefault();
           setSearch(draftSearch);
           void refresh(1, draftSearch, statusFilter).catch(() =>
-            setError("Não foi possível pesquisar o histórico."),
+            setError("Could not search history."),
           );
         }}
       >
         <label>
-          Pesquisar caminhos
+          Search paths
           <input
             value={draftSearch}
             maxLength={200}
             onChange={(e) => setDraftSearch(e.target.value)}
-            placeholder="Nome do ficheiro ou pasta"
+            placeholder="File or folder name"
             disabled={disabled || pending}
           />
         </label>
         <label>
-          Estado da operação
+          Operation status
           <select
             value={statusFilter}
             disabled={disabled || pending}
             onChange={(e) => {
               setStatusFilter(e.target.value);
               void refresh(1, search, e.target.value).catch(() =>
-                setError("Não foi possível filtrar o histórico."),
+                setError("Could not filter history."),
               );
             }}
           >
-            <option value="all">Todos os estados</option>
+            <option value="all">All statuses</option>
             {Object.entries(statuses).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -368,7 +366,7 @@ export default function OperationsPanel({
           className="secondary"
           disabled={disabled || pending || historyLoading}
         >
-          Pesquisar
+          Search
         </button>
         <button
           type="button"
@@ -376,19 +374,19 @@ export default function OperationsPanel({
           disabled={disabled || pending || historyLoading || !total}
           onClick={() => void exportHistory()}
         >
-          Exportar resultados
+          Export results
         </button>
       </form>
       <p className="history-export-note">
-        A exportação JSON inclui os caminhos locais e os resultados das
-        operações, sem o conteúdo dos documentos.
+        JSON exports include local paths and operation results, not document
+        contents.
       </p>
-      {historyLoading && <p aria-live="polite">A carregar o histórico…</p>}
+      {historyLoading && <p aria-live="polite">Loading history…</p>}
       {!records.length && (
         <p className="history-empty">
           {search || statusFilter !== "all"
-            ? "Nenhuma operação corresponde aos filtros. Experimente outra pesquisa ou estado."
-            : "Ainda não existem operações. O histórico aparecerá aqui quando preparar uma organização."}
+            ? "No operations match these filters. Try another search or status."
+            : "Your story starts here. Prepare an organization to see it in your history."}
         </p>
       )}
       {records.map((record) => (
@@ -397,8 +395,8 @@ export default function OperationsPanel({
             <div>
               <strong>{statuses[record.status] ?? record.status}</strong>
               <p>
-                {new Date(record.created_at).toLocaleString("pt-PT")} ·{" "}
-                {record.actions.length} ficheiro(s)
+                {new Date(record.created_at).toLocaleString("en-GB")} ·{" "}
+                {record.actions.length} files
               </p>
             </div>
             {!["prepared", "undone"].includes(record.status) && (
@@ -411,14 +409,14 @@ export default function OperationsPanel({
                   setError("");
                 }}
               >
-                <RotateCcw size={14} /> Desfazer
+                <RotateCcw size={14} /> Undo
               </button>
             )}
           </div>
           <p className="root-path">{record.root}</p>
           {record.error && <p className="warning">{record.error}</p>}
           <details>
-            <summary>Ver ficheiros e resultados</summary>
+            <summary>View files and results</summary>
             <ul className="action-list">
               {record.actions.map((action) => (
                 <li key={action.source}>
@@ -436,31 +434,31 @@ export default function OperationsPanel({
           </details>
         </article>
       ))}
-      <nav className="history-pagination" aria-label="Páginas do histórico">
+      <nav className="history-pagination" aria-label="History pages">
         <button
           className="secondary"
           disabled={disabled || pending || historyLoading || page <= 1}
           onClick={() =>
             void refresh(page - 1).catch(() =>
-              setError("Não foi possível mudar de página."),
+              setError("Could not change page."),
             )
           }
         >
-          Anterior
+          Previous
         </button>
         <span>
-          Página {page} de {pages}
+          Page {page} of {pages}
         </span>
         <button
           className="secondary"
           disabled={disabled || pending || historyLoading || page >= pages}
           onClick={() =>
             void refresh(page + 1).catch(() =>
-              setError("Não foi possível mudar de página."),
+              setError("Could not change page."),
             )
           }
         >
-          Seguinte
+          Next
         </button>
       </nav>
     </section>

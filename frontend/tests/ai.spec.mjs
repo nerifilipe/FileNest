@@ -15,22 +15,20 @@ test("unavailable Ollama offers explicit rules choice", async ({ page }) => {
       json: {
         available: false,
         model: "qwen3:4b",
-        message: "O modelo qwen3:4b não está instalado.",
+        message: "The qwen3:4b model is not installed.",
       },
     }),
   );
   await page.goto("/");
-  await page.getByLabel("Como gerar sugestões").selectOption("ollama");
+  await page.getByLabel("Suggestion engine").selectOption("ollama");
   await expect(
-    page.getByText("O modelo qwen3:4b não está instalado."),
+    page.getByText("The qwen3:4b model is not installed."),
   ).toBeVisible();
   await page
-    .getByRole("button", { name: "Usar regras locais", exact: true })
+    .getByRole("button", { name: "Use local rules", exact: true })
     .click();
-  await expect(page.getByLabel("Como gerar sugestões")).toHaveValue(
-    "demo-rules",
-  );
-  await page.getByRole("button", { name: "Explorar exemplo" }).click();
+  await expect(page.getByLabel("Suggestion engine")).toHaveValue("demo-rules");
+  await page.getByRole("button", { name: "Explore sample files" }).click();
   await expect(page.locator(".file-card")).toHaveCount(9);
 });
 
@@ -42,7 +40,7 @@ test("mixed AI and rules suggestions are clearly labelled", async ({
       json: {
         available: true,
         model: "qwen3:4b",
-        message: "Ollama disponível.",
+        message: "Ollama is available.",
       },
     }),
   );
@@ -50,8 +48,8 @@ test("mixed AI and rules suggestions are clearly labelled", async ({
     expect(route.request().postDataJSON().provider).toBe("ollama");
     const base = {
       size: 123,
-      category: "Trabalho",
-      proposed_folder: "Trabalho",
+      category: "Work",
+      proposed_folder: "Work",
       status: "ready",
       included: true,
       issues: [],
@@ -66,8 +64,8 @@ test("mixed AI and rules suggestions are clearly labelled", async ({
             ...base,
             id: "a.txt",
             current_path: "a.txt",
-            proposed_name: "reuniao-projeto.txt",
-            reason: "Ata de reunião.",
+            proposed_name: "project-meeting.txt",
+            reason: "Meeting minutes.",
             suggestion_source: "ollama",
             provider_note: "",
           },
@@ -75,28 +73,27 @@ test("mixed AI and rules suggestions are clearly labelled", async ({
             ...base,
             id: "b.txt",
             current_path: "b.txt",
-            proposed_name: "reuniao.txt",
-            reason: "Regra local: reunião.",
+            proposed_name: "meeting.txt",
+            reason: "Local rule: meeting.",
             suggestion_source: "demo-rules",
-            provider_note:
-              "Alternativa por regras locais: o modelo demorou demasiado.",
+            provider_note: "Local rules fallback: the model took too long.",
           },
         ],
       },
     });
   });
   await page.goto("/");
-  await page.getByLabel("Como gerar sugestões").selectOption("ollama");
-  await page.getByRole("button", { name: "Explorar exemplo" }).click();
+  await page.getByLabel("Suggestion engine").selectOption("ollama");
+  await page.getByRole("button", { name: "Explore sample files" }).click();
   await expect(page.locator(".source-badge.ai")).toHaveCount(1);
   await expect(
-    page.locator(".source-badge").filter({ hasText: "Regras locais" }),
+    page.locator(".source-badge").filter({ hasText: "Local rules" }),
   ).toHaveCount(1);
   await expect(
-    page.getByText("Alternativa por regras locais:", { exact: false }),
+    page.getByText("Local rules fallback:", { exact: false }),
   ).toBeVisible();
   await expect(
-    page.getByText("1 sugestão(ões) da IA · 1 por regras.", { exact: false }),
+    page.getByText("1 AI suggestions · 1 from rules.", { exact: false }),
   ).toBeVisible();
 });
 
@@ -108,12 +105,15 @@ test("live Ollama analyses only fictional samples", async ({ page }) => {
   test.setTimeout(240_000);
   await page.setViewportSize({ width: 1440, height: 1100 });
   await page.goto("/");
-  await page.getByLabel("Como gerar sugestões").selectOption("ollama");
+  await page.getByLabel("Suggestion engine").selectOption("ollama");
   await expect(
-    page.getByText("Ollama e modelo local disponíveis."),
+    page.getByText("Ollama and local model are available."),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Explorar exemplo" }).click();
+  await page.getByRole("button", { name: "Explore sample files" }).click();
   await expect(page.locator(".file-card")).toHaveCount(9, { timeout: 230_000 });
   await expect(page.locator(".source-badge.ai")).toHaveCount(5);
-  await page.screenshot({ path: screenshotPath("ai-demo.png"), fullPage: true });
+  await page.screenshot({
+    path: screenshotPath("ai-demo.png"),
+    fullPage: true,
+  });
 });

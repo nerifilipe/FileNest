@@ -20,9 +20,9 @@ HEADERS = {"X-FileNest-Client": "local-preview"}
 def history_data(tmp_path, monkeypatch):
     monkeypatch.setattr(operations, "DATA_DIR", tmp_path / "history")
     for i in range(61):
-        operations.save({"id": f"record-{i}", "created_at": "2026-09-01T12:00:00Z", "root": str(tmp_path / "Formação"),
+        operations.save({"id": f"record-{i}", "created_at": "2026-09-01T12:00:00Z", "root": str(tmp_path / "Education"),
                          "status": "undone" if i % 2 else "completed", "error": "",
-                         "actions": [{"source": f"reunião-{i}.txt", "destination": f"Trabalho/ata-{i}.txt", "state": "moved", "error": ""}]})
+                         "actions": [{"source": f"reunião-{i}.txt", "destination": f"Work/ata-{i}.txt", "state": "moved", "error": ""}]})
 
 
 def test_history_pagination_search_and_export_preserve_old_records(history_data):
@@ -38,7 +38,7 @@ def test_history_pagination_search_and_export_preserve_old_records(history_data)
     assert len(exported["operations"]) == 6  # All matches, not just the visible page.
     assert all(r["status"] == "undone" for r in exported["operations"])
     assert client.post("/api/operations/search", headers=HEADERS, json={"search": "' OR 1=1 --"}).json()["total"] == 0
-    assert client.post("/api/operations/search", headers=HEADERS, json={"search": "formacao"}).json()["total"] == 61
+    assert client.post("/api/operations/search", headers=HEADERS, json={"search": "education"}).json()["total"] == 61
     assert client.post("/api/operations/search", headers=HEADERS, json={"page": 0}).status_code == 422
     assert client.post("/api/operations/export", json={}).status_code == 403
 
@@ -95,7 +95,7 @@ def test_mixed_pdf_reports_unread_pages(tmp_path):
     writer.write(path)
     result = isolated_extract(path)
     assert result["text"].strip() == "Fatura ficticia"
-    assert "não foram analisadas" in result["notes"][0]
+    assert "were skipped" in result["notes"][0]
 
 
 def test_real_ocr_mixed_pdf_and_unchanged_original(tmp_path):
@@ -106,7 +106,7 @@ def test_real_ocr_mixed_pdf_and_unchanged_original(tmp_path):
     before = scan.read_bytes()
     assert not PdfReader(scan).pages[0].extract_text().strip()
     result = isolated_extract(scan, True)
-    assert "FATURA" in result["text"] and "18,90" in result["text"]
+    assert "INVOICE" in result["text"] and "18.90" in result["text"]
     assert result["method"] == "ocr" and scan.read_bytes() == before
     text = tmp_path / "text.pdf"
     text_pdf(text, ["Pagina com texto extraivel"])
@@ -116,7 +116,7 @@ def test_real_ocr_mixed_pdf_and_unchanged_original(tmp_path):
     mixed = tmp_path / "mixed.pdf"
     writer.write(mixed)
     result = isolated_extract(mixed, True)
-    assert "Pagina com texto extraivel" in result["text"] and "FATURA" in result["text"]
+    assert "Pagina com texto extraivel" in result["text"] and "INVOICE" in result["text"]
 
 
 def test_ocr_page_limit_before_excess_rendering(tmp_path, monkeypatch):

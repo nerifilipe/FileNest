@@ -22,9 +22,9 @@ def text_pdf(path: Path, lines: list[str]) -> None:
 
 if __name__ == "__main__":
     ROOT.mkdir(parents=True, exist_ok=True)
-    text_pdf(ROOT / "scan_001.pdf", ["FILENEST | DOCUMENTO FICTICIO", "Fatura de demonstracao", "2026-09-01", "Entidade ficticia: Papelaria Lua Verde", "Pagamento: 24,50 EUR", "Sem validade fiscal. Sem dados pessoais."])
+    text_pdf(ROOT / "scan_001.pdf", ["FILENEST | FICTIONAL DOCUMENT", "Sample invoice", "2026-09-01", "Fictional business: Green Moon Stationery", "Payment: 24.50 EUR", "Not a tax document. No personal data."])
     writer = PdfWriter()
     writer.add_blank_page(width=595, height=842)
-    writer.write(ROOT / "sem_texto.pdf")
+    writer.write(ROOT / "blank.pdf")
     writer.encrypt("filenest-demo")
-    writer.write(ROOT / "protegido.pdf")
+    writer.write(ROOT / "protected.pdf")

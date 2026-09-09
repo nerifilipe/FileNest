@@ -15,10 +15,10 @@ def normalize(text: str) -> str:
 class DemoProvider:
     """Deterministic keyword matching. No model, network or document execution."""
     rules = [
-        ("Finanças", "Financas", "fatura", ("fatura", "iban", "pagamento")),
-        ("Formação", "Formacao", "apontamentos", ("aula", "disciplina", "exame")),
-        ("Trabalho", "Trabalho", "reuniao", ("reuniao", "projeto", "cliente")),
-        ("Pessoal", "Pessoal", "viagem", ("viagem", "reserva", "hotel")),
+        ("Finance", "Finance", "invoice", ("invoice", "payment", "iban", "fatura", "pagamento")),
+        ("Education", "Education", "notes", ("lecture", "course", "exam", "aula", "disciplina", "exame")),
+        ("Work", "Work", "meeting", ("meeting", "project", "client", "reuniao", "projeto", "cliente")),
+        ("Personal", "Personal", "travel", ("travel", "booking", "hotel", "viagem", "reserva")),
     ]
 
     def suggest(self, text: str, extension: str) -> Suggestion:
@@ -30,6 +30,6 @@ class DemoProvider:
                 name = f"{date.group(1)}_{stem}" if date else stem
                 return Suggestion(category=category, proposed_folder=folder,
                                   proposed_name=name + extension.lower(),
-                                  reason="Regra local: palavras «" + "», «".join(matches) + "» encontradas no texto.")
-        return Suggestion(category="Outros", proposed_folder="Outros", proposed_name="documento" + extension.lower(),
-                          reason="Nenhuma regra específica correspondeu. Reveja o nome e a categoria.")
+                                  reason="Local rule: keywords «" + "», «".join(matches) + "» found in the text.")
+        return Suggestion(category="Other", proposed_folder="Other", proposed_name="document" + extension.lower(),
+                          reason="No specific rule matched. Review the name and category.")

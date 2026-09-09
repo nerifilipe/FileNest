@@ -1,33 +1,24 @@
-# Verificação de instalação limpa
+# Clean installation verification
 
-Verificação realizada em 8 de setembro de 2026 sobre o commit `b2c3952`.
+Historical verification performed on **8 September 2026**, commit `b2c3952`. These results predate the English interface refresh.
 
-## Ambiente e método
+## Method
 
-- Windows, Python 3.14.4, Node.js 25.9.0 e npm 11.12.1.
-- Exportação dos ficheiros versionados com `git archive`, para uma pasta temporária cujo caminho contém espaços.
-- Ambiente `.venv` criado de novo e dependências frontend instaladas com `npm ci`.
-- Sem copiar `.venv`, `node_modules`, `.filenest`, configurações ou documentos locais da instalação de desenvolvimento.
-- Usados os comandos de instalação do README. Pip e npm puderam reutilizar os caches de pacotes do computador; as dependências foram instaladas de novo na cópia.
+Windows with Python 3.14.4, Node.js 25.9.0, and npm 11.12.1. Tracked files were exported using `git archive` into a temporary path containing spaces. A fresh virtual environment and `npm ci` installation followed the README. Development environments, local settings, documents, and `.filenest` were not copied. Package caches could be reused.
 
-## Resultados
-
-| Verificação | Resultado |
+| Check | Recorded result |
 | --- | --- |
-| Instalação de `backend/requirements-lock.txt` | Passou |
-| `python -m pip check` | Sem incompatibilidades |
-| `npm ci` | Passou |
-| `python -m pytest -q -ra` | 97 passaram; 2 ignorados |
-| `npm run build` | Passou |
-| `npx playwright test` | 11 passaram; 2 ignorados |
-| `scripts/start.ps1 -CheckOnly` | Requisitos e portas disponíveis |
-| `scripts/launch.py --smoke-test` | Ambos os servidores responderam e terminaram |
-| Portas após encerramento | Livres |
+| Locked Python dependencies and `pip check` | Passed; no conflicts |
+| `npm ci` | Passed |
+| Backend tests | 97 passed, 2 skipped |
+| Frontend build | Passed |
+| Browser tests | 11 passed, 2 skipped |
+| Launcher requirement check | Passed |
+| Launcher smoke test | Both servers responded and stopped |
+| Ports after shutdown | Available |
 
-Os testes ignorados foram symlinks sem privilégios Windows e OCR sem os idiomas configurados no backend; no navegador, OCR real e IA real opcional. Os testes por regras, pré-visualização PDF/TXT, subpastas, progresso/cancelamento, organização, histórico e restauro passaram. Não foram configurados modelos nem OCR para esta cópia. Os avisos de depreciação de Starlette/httpx nos testes não impediram a execução.
+Skipped checks required Windows symlink privileges, configured OCR, or opt-in live AI. No models or OCR were configured in the clean copy. Installation commands required no corrections.
 
-Não foram necessárias correções nos comandos de instalação ou no código para concluir esta verificação.
+## Limits
 
-## Limites desta verificação
-
-Foi uma instalação limpa do projeto no mesmo computador, não uma máquina virtual Windows recém-instalada. Python, Node.js, Microsoft Edge e os caches de pacotes já existiam no sistema. A verificação não comprova todas as versões mínimas suportadas, outros sistemas operativos, o instalador de OCR ou o download inicial do modelo. O teste do launcher verificou os servidores sem abrir o navegador.
+This was a fresh project installation on the same computer, not a fresh Windows virtual machine. Python, Node.js, Edge, and package caches already existed. It does not verify every minimum version, other operating systems, OCR installation, or initial model downloads. The launcher smoke test did not open a browser. Run the README checks for the current checkout.

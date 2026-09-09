@@ -19,9 +19,7 @@ export default function OcrControls({
         (await request<{ message: string }>("ocr/status", {})).message,
       );
     } catch {
-      setMessage(
-        "Não foi possível verificar o OCR. Reinicie o backend e tente novamente.",
-      );
+      setMessage("Could not check OCR. Restart the backend and try again.");
     } finally {
       setChecking(false);
     }
@@ -38,22 +36,22 @@ export default function OcrControls({
           disabled={disabled}
           onChange={(e) => onChange(e.target.checked)}
         />{" "}
-        Reconhecer PDFs digitalizados com OCR local
+        Read scanned PDFs with local OCR
       </label>
       <p>
-        Português e inglês · até 20 páginas sem texto por documento. O PDF
-        original não é regravado.
+        English text recognition · up to 20 scanned pages per document. Original
+        PDFs stay untouched.
       </p>
       {enabled && (
         <div className="provider-status">
-          <span>{checking ? "A verificar o OCR…" : message}</span>
+          <span>{checking ? "Checking OCR…" : message}</span>
           <button
             type="button"
             className="text-button"
             disabled={checking || disabled}
             onClick={() => void check()}
           >
-            Verificar OCR
+            Check OCR
           </button>
         </div>
       )}

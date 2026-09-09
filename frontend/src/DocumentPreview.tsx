@@ -9,7 +9,10 @@ function readPreview(token: string, page: number) {
   if (!pending) {
     pending = request<Preview>("preview", { token, page });
     inFlight.set(key, pending);
-    void pending.then(() => inFlight.delete(key), () => inFlight.delete(key));
+    void pending.then(
+      () => inFlight.delete(key),
+      () => inFlight.delete(key),
+    );
   }
   return pending;
 }
@@ -45,7 +48,7 @@ export default function DocumentPreview({
       .catch((e) => {
         if (active)
           setError(
-            e instanceof TypeError ? "Servidor local indisponível." : e.message,
+            e instanceof TypeError ? "Local server unavailable." : e.message,
           );
       });
     return () => {
@@ -53,25 +56,22 @@ export default function DocumentPreview({
     };
   }, [token, page, attempt]);
   return (
-    <section
-      className="document-preview"
-      aria-label={`Pré-visualização de ${name}`}
-    >
-      <strong>Documento original · apenas leitura</strong>
-      {!data && !error && <p role="status">A carregar a pré-visualização…</p>}
+    <section className="document-preview" aria-label={`Preview of ${name}`}>
+      <strong>Original document · read only</strong>
+      {!data && !error && <p role="status">Loading preview…</p>}
       {error && (
         <div>
           <p role="alert">{error}</p>
           <button className="secondary" onClick={() => setAttempt(attempt + 1)}>
-            Tentar novamente
+            Try again
           </button>
         </div>
       )}
       {data?.kind === "text" && (
         <>
-          <pre>{data.text || "O ficheiro está vazio."}</pre>
+          <pre>{data.text || "This file is empty."}</pre>
           {data.truncated && (
-            <p>Pré-visualização limitada aos primeiros 50 000 caracteres.</p>
+            <p>Preview limited to the first 50,000 characters.</p>
           )}
         </>
       )}
@@ -79,15 +79,15 @@ export default function DocumentPreview({
         <>
           <img
             src={`data:image/png;base64,${data.image}`}
-            alt={`Página ${data.page} de ${name}`}
+            alt={`Page ${data.page} of ${name}`}
           />
-          <nav aria-label={`Páginas de ${name}`}>
+          <nav aria-label={`Pages of ${name}`}>
             <button
               className="secondary"
               disabled={page <= 1}
               onClick={() => setPage(page - 1)}
             >
-              Página anterior
+              Previous page
             </button>
             <span>
               {page} / {data.pages}
@@ -97,10 +97,10 @@ export default function DocumentPreview({
               disabled={page >= data.pages}
               onClick={() => setPage(page + 1)}
             >
-              Página seguinte
+              Next page
             </button>
           </nav>
-          <p>Imagem da página. Links e scripts do PDF não são executados.</p>
+          <p>Page image. PDF links and scripts are not executed.</p>
         </>
       )}
     </section>

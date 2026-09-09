@@ -26,12 +26,12 @@ def read(token, page=1):
     with _lock:
         record = _documents.get(token)
     if not record or time.monotonic() - record[4] > 3600:
-        raise ValueError("Pré-visualização expirada. Volte a analisar a pasta.")
+        raise ValueError("Preview expired. Analyze the folder again.")
     raw_root, relative, identity, root_identity, _ = record
     root = local_root(raw_root)
     info = root.stat()
     if (info.st_dev, info.st_ino) != root_identity:
-        raise ValueError("A pasta mudou. Volte a analisar.")
+        raise ValueError("The folder changed. Analyze it again.")
     path = operations.safe_path(root, relative)
     operations.verify(path, identity)
     result = run_worker("backend.preview_worker", {"path": str(path), "page": page}, max_output_bytes=8_000_000)

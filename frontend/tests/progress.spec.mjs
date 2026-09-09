@@ -35,7 +35,7 @@ test("progress and cooperative cancellation keep completed suggestions", async (
             plan: {
               root: "C:/demo",
               provider: "demo-rules",
-              warnings: ["Análise cancelada: 1 de 4 documentos concluídos."],
+              warnings: ["Analysis cancelled: 1 of 4 documents completed."],
               items: [
                 {
                   id: "concluido.txt",
@@ -44,9 +44,9 @@ test("progress and cooperative cancellation keep completed suggestions", async (
                   status: "ready",
                   included: true,
                   issues: [],
-                  category: "Trabalho",
-                  proposed_name: "reuniao.txt",
-                  proposed_folder: "Trabalho",
+                  category: "Work",
+                  proposed_name: "meeting.txt",
+                  proposed_folder: "Work",
                   reason: "Regra local",
                   suggestion_source: "demo-rules",
                   extraction_notes: [],
@@ -58,22 +58,28 @@ test("progress and cooperative cancellation keep completed suggestions", async (
     }),
   );
   await page.goto("/");
-  await page.getByRole("button", { name: "Explorar exemplo" }).click();
+  await page.getByRole("button", { name: "Explore sample files" }).click();
   await expect(
-    page.getByText("1 de 4 documentos concluídos", { exact: true }),
+    page.getByText("1 of 4 documents completed", { exact: true }),
   ).toBeVisible();
   await expect(page.getByRole("progressbar")).toHaveAttribute("value", "1");
   await page.setViewportSize({ width: 390, height: 844 });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.locator(".loading").screenshot({ path: "../tmp/analysis-progress.png" });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
   await page
-    .getByRole("button", { name: "Cancelar análise", exact: true })
+    .locator(".loading")
+    .screenshot({ path: "../tmp/analysis-progress.png" });
+  await page
+    .getByRole("button", { name: "Cancel analysis", exact: true })
     .click();
   await expect(
-    page.getByText("Análise cancelada:", { exact: false }),
+    page.getByText("Analysis cancelled:", { exact: false }),
   ).toBeVisible();
   await expect(page.locator(".file-card")).toHaveCount(1);
   await expect(
-    page.getByRole("button", { name: "Experimentar demonstração" }),
+    page.getByRole("button", { name: "Try the demo" }),
   ).toBeEnabled();
 });

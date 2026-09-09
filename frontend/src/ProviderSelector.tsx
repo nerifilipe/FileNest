@@ -24,7 +24,7 @@ export default function ProviderSelector({
         available: false,
         model: "qwen3:4b",
         message:
-          "Não foi possível verificar o Ollama. Confirme que reiniciou o backend atualizado.",
+          "Could not check Ollama. Make sure the updated backend is running.",
       });
     } finally {
       setChecking(false);
@@ -35,26 +35,25 @@ export default function ProviderSelector({
   }, [value]);
   return (
     <div className="provider-selector">
-      <label htmlFor="suggestion-provider">Como gerar sugestões</label>
+      <label htmlFor="suggestion-provider">Suggestion engine</label>
       <select
         id="suggestion-provider"
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value as Provider)}
       >
-        <option value="demo-rules">Regras locais · rápido, sem IA</option>
-        <option value="ollama">IA local · Qwen3 4B via Ollama</option>
+        <option value="demo-rules">Local rules · fast, no AI</option>
+        <option value="ollama">Local AI · Qwen3 4B via Ollama</option>
       </select>
       {value === "ollama" ? (
         <>
           <p>
-            Até 20 documentos, um de cada vez. Apenas os primeiros 6000
-            caracteres são enviados ao Ollama neste computador. Nenhum serviço
-            externo recebe os documentos.
+            Up to 20 documents, one at a time. Only the first 6,000 characters
+            are sent to Ollama on this computer. No documents leave your device.
           </p>
           <div className="provider-status">
             <span className={status?.available ? "available" : ""}>
-              {checking ? "A verificar o Ollama…" : status?.message}
+              {checking ? "Checking Ollama…" : status?.message}
             </span>
             <button
               type="button"
@@ -62,7 +61,7 @@ export default function ProviderSelector({
               disabled={disabled || checking}
               onClick={() => void check()}
             >
-              Verificar Ollama
+              Check Ollama
             </button>
             {status && !status.available && (
               <button
@@ -71,16 +70,13 @@ export default function ProviderSelector({
                 disabled={disabled}
                 onClick={() => onChange("demo-rules")}
               >
-                Usar regras locais
+                Use local rules
               </button>
             )}
           </div>
         </>
       ) : (
-        <p>
-          Classificação determinística por palavras-chave. Funciona sem Ollama e
-          sem modelo.
-        </p>
+        <p>Predictable keyword matching. No Ollama or model needed.</p>
       )}
     </div>
   );

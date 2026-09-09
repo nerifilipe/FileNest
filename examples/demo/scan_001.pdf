@@ -37,10 +37,10 @@ endobj
 endobj
 5 0 obj
 <<
-/Length 241
+/Length 231
 >>
 stream
-BT /F1 14 Tf 50 770 Td 24 TL (FILENEST | DOCUMENTO FICTICIO) Tj T* (Fatura de demonstracao) Tj T* (2026-09-01) Tj T* (Entidade ficticia: Papelaria Lua Verde) Tj T* (Pagamento: 24,50 EUR) Tj T* (Sem validade fiscal. Sem dados pessoais.) Tj ET
+BT /F1 14 Tf 50 770 Td 24 TL (FILENEST | FICTIONAL DOCUMENT) Tj T* (Sample invoice) Tj T* (2026-09-01) Tj T* (Fictional business: Green Moon Stationery) Tj T* (Payment: 24.50 EUR) Tj T* (Not a tax document. No personal data.) Tj ET
 endstream
 endobj
 xref
@@ -58,5 +58,5 @@ trailer
 /Info 1 0 R
 >>
 startxref
-635
+625
 %%EOF
